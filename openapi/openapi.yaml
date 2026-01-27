@@ -11,13 +11,33 @@ components:
           example: "A brief description of the error."
           type: "string"
       type: "object"
+    RegisterProjectRequest:
+      properties:
+        projectName:
+          description: "The name of the project to register."
+          type: "string"
+        publicKey:
+          description: "The public key for the project."
+          type: "string"
+      required:
+        - "projectName"
+        - "publicKey"
+      type: "object"
+    RegisterProjectResponse:
+      properties:
+        projectId:
+          description: "The unique project UUID-V4."
+          type: "string"
+      required:
+        - "projectId"
+      type: "object"
 info:
   description: |
     REST API for the Obsidian CRDT Sync Server.
     
-    This server enables real-time collaboration using Yjs as a CRDTs. Documents are synchronized over WebSocket and persisted with SQLite.
-    The rest API provides endpoints for authentication, project management, filetree synchronization, and more.
-    Planed is also the support for larger files using chunking and binary data transfer.
+    This server enables real-time collaboration using Yjs as a CRDT. Documents are synchronized over WebSocket and persisted with SQLite.
+    The REST API provides endpoints for authentication, project management, filetree synchronization, and more.
+    Planned is also support for larger files using chunking and binary data transfer.
     
     **Features:**
     - WebSocket-based real-time synchronization
@@ -35,10 +55,7 @@ openapi: "3.0.2"
 paths:
   /:
     get:
-      description: |
-        Provides basic information about the CRDT Sync Server.
-        
-        This endpoint can be used to check server availability.
+      description: "Provides basic information about the CRDT Sync Server. This endpoint can be used to check server availability."
       responses:
         "200":
           content:
@@ -76,6 +93,31 @@ paths:
       summary: "Returns OpenAPI YAML document describing the capabilities of this API."
       tags:
         - "System"
+  /project/register:
+    post:
+      description: "Registers a new project with the given projectName and publicKey. Returns a unique projectId."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/RegisterProjectRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/RegisterProjectResponse"
+          description: "Project registered successfully."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Invalid input."
+      summary: "Register a new project and receive a projectId."
+      tags:
+        - "Project"
 servers:
   - description: "HTTP REST API"
     url: "http://{host}:{port}"
