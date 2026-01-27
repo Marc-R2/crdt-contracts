@@ -1,0 +1,92 @@
+components:
+  schemas:
+    Error:
+      properties:
+        errorCode:
+          description: "A 5-digit error code uniquely identifying this particular type of error."
+          example: 40149
+          type: "number"
+        message:
+          description: "Message describing the error."
+          example: "A brief description of the error."
+          type: "string"
+      type: "object"
+info:
+  description: |
+    REST API for the Obsidian CRDT Sync Server.
+    
+    This server enables real-time collaboration using Yjs as a CRDT (Conflict-free Replicated Data Type). Documents are synchronized over WebSocket and persisted with SQLite.
+    
+    **Features:**
+    - WebSocket-based real-time synchronization
+    - SQLite persistence with Hocuspocus
+    - Awareness support (cursor, users, selection)
+    - Yjs CRDT for conflict-free collaboration
+    
+    The WebSocket server runs on port 1234 by default.
+  title: "Obsidian CRDT Sync Server API"
+  version: "1.0.0"
+openapi: "3.0.2"
+paths:
+  /:
+    get:
+      description: |
+        Provides basic information about the CRDT Sync Server.
+        
+        This endpoint can be used to check server availability.
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  ok:
+                    description: "'OK'"
+                    type: "string"
+                  service:
+                    description: "'Obsidian CRDT Sync Server'"
+                    type: "string"
+                  versions:
+                    properties:
+                      hocuspocus:
+                        description: "Hocuspocus server version"
+                        type: "string"
+                      self:
+                        description: "Server version"
+                        type: "string"
+                      yjs:
+                        description: "Yjs version"
+                        type: "string"
+                    type: "object"
+                type: "object"
+          description: "Success"
+      summary: "Returns basic server information."
+      tags:
+        - "System"
+  /openapi.yaml:
+    get:
+      responses:
+        "200":
+          description: "Success"
+      summary: "Returns OpenAPI YAML document describing the capabilities of this API."
+      tags:
+        - "System"
+servers:
+  - description: "HTTP REST API"
+    url: "http://{host}:{port}"
+    variables:
+      host:
+        default: "localhost"
+        description: "Server host"
+      port:
+        default: "1234"
+        description: "HTTP port"
+  - description: "WebSocket Server (for Yjs synchronization)"
+    url: "ws://{host}:{port}"
+    variables:
+      host:
+        default: "localhost"
+        description: "Server host"
+      port:
+        default: "1234"
+        description: "WebSocket port"
