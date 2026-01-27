@@ -15,17 +15,22 @@ info:
   description: |
     REST API for the Obsidian CRDT Sync Server.
     
-    This server enables real-time collaboration using Yjs as a CRDT (Conflict-free Replicated Data Type). Documents are synchronized over WebSocket and persisted with SQLite.
+    This server enables real-time collaboration using Yjs as a CRDTs. Documents are synchronized over WebSocket and persisted with SQLite.
+    The rest API provides endpoints for authentication, project management, filetree synchronization, and more.
+    Planed is also the support for larger files using chunking and binary data transfer.
     
     **Features:**
     - WebSocket-based real-time synchronization
     - SQLite persistence with Hocuspocus
     - Awareness support (cursor, users, selection)
     - Yjs CRDT for conflict-free collaboration
+    - Register and manage projects
+    - Update and retrieve filetrees of projects
+    - Startup synchronization of projects
     
     The WebSocket server runs on port 1234 by default.
   title: "Obsidian CRDT Sync Server API"
-  version: "1.0.0"
+  version: "0.0.1"
 openapi: "3.0.2"
 paths:
   /:
