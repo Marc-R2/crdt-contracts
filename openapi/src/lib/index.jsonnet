@@ -2,6 +2,19 @@
   components: {
     schemas: {
       // Define any shared schemas here if needed in the future
+      ProjectId: { type: 'string', format: 'uuid', description: 'Project ID (UUID v4).' },
+      DocId: { type: 'string', description: 'Document ID.' },
+      UnixTimestamp: { type: 'integer', description: 'Unix timestamp in seconds.' },
+      FsEntry: {
+        type: 'object',
+        required: ['docId', 'path', 'stamp', 'status'],
+        properties: {
+          docId: { "$ref": '#/components/schemas/DocId' },
+          path: { type: 'string', description: 'Path of the fs entry relative to the project root.' },
+          stamp: { "$ref": '#/components/schemas/UnixTimestamp' },
+          status: { type: 'string', description: 'Entry status within the project. Example: "active", "archived", "deleted".' },
+        },
+      },
     },
   },
 

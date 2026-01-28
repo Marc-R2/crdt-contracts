@@ -1,5 +1,8 @@
 components:
   schemas:
+    DocId:
+      description: "Document ID."
+      type: "string"
     Error:
       properties:
         errorCode:
@@ -14,14 +17,12 @@ components:
     FsEntry:
       properties:
         docId:
-          description: "Document ID associated with the fs entry."
-          type: "string"
+          "$ref": "#/components/schemas/DocId"
         path:
           description: "Path of the fs entry relative to the project root."
           type: "string"
         stamp:
-          description: "Unix timestamp of the last update."
-          type: "integer"
+          "$ref": "#/components/schemas/UnixTimestamp"
         status:
           description: "Entry status within the project. Example: \"active\", \"archived\", \"deleted\"."
           type: "string"
@@ -39,8 +40,7 @@ components:
             "$ref": "#/components/schemas/FsEntry"
           type: "array"
         projectId:
-          description: "Project ID (UUID v4)."
-          type: "string"
+          "$ref": "#/components/schemas/ProjectId"
       required:
         - "projectId"
         - "entries"
@@ -48,9 +48,7 @@ components:
     GetFsSyncResponse:
       properties:
         projectId:
-          description: "Project ID (UUID v4)."
-          format: "uuid"
-          type: "string"
+          "$ref": "#/components/schemas/ProjectId"
         updates:
           description: "List of server-side fs entry updates compared to the client entries."
           items:
@@ -63,11 +61,9 @@ components:
     GetFsUpdatesRequest:
       properties:
         projectId:
-          description: "Project ID (UUID v4)."
-          type: "string"
+          "$ref": "#/components/schemas/ProjectId"
         timestamp:
-          description: "Unix timestamp after which to retrieve file system updates."
-          type: "integer"
+          "$ref": "#/components/schemas/UnixTimestamp"
       required:
         - "projectId"
         - "timestamp"
@@ -75,8 +71,7 @@ components:
     GetFsUpdatesResponse:
       properties:
         projectId:
-          description: "Project ID (UUID v4)."
-          type: "string"
+          "$ref": "#/components/schemas/ProjectId"
         updates:
           description: "List of file system updates since the given timestamp."
           items:
@@ -89,11 +84,9 @@ components:
     GetSnapshotRequest:
       properties:
         docId:
-          description: "The document ID of the snapshot to retrieve."
-          type: "string"
+          "$ref": "#/components/schemas/DocId"
         projectId:
-          description: "The id of the project."
-          type: "string"
+          "$ref": "#/components/schemas/ProjectId"
       required:
         - "projectId"
         - "docId"
@@ -101,20 +94,17 @@ components:
     GetSnapshotResponse:
       properties:
         docId:
-          description: "The document ID of the snapshot."
-          type: "string"
+          "$ref": "#/components/schemas/DocId"
         hash:
           description: "The hash of the snapshot data."
           type: "string"
         projectId:
-          description: "The unique project UUID-V4."
-          type: "string"
+          "$ref": "#/components/schemas/ProjectId"
         snapshotData:
           description: "The data of the snapshot, encoded in base64."
           type: "string"
         stamp:
-          description: "The unix timestamp when the snapshot was updated."
-          type: "integer"
+          "$ref": "#/components/schemas/UnixTimestamp"
         status:
           description: "The status of the snapshot within the project. E.g., \"active\", \"archived\", \"deleted\"."
           type: "string"
@@ -129,11 +119,9 @@ components:
     GetSnapshotUpdatesRequest:
       properties:
         projectId:
-          description: "The id of the project."
-          type: "string"
+          "$ref": "#/components/schemas/ProjectId"
         timestamp:
-          description: "The unix timestamp after which to retrieve snapshot updates."
-          type: "integer"
+          "$ref": "#/components/schemas/UnixTimestamp"
       required:
         - "projectId"
         - "timestamp"
@@ -141,8 +129,7 @@ components:
     GetSnapshotUpdatesResponse:
       properties:
         projectId:
-          description: "The unique project UUID-V4."
-          type: "string"
+          "$ref": "#/components/schemas/ProjectId"
         updates:
           description: "List of updated snapshots since the given timestamp."
           items:
@@ -155,16 +142,14 @@ components:
     ListSnapshotsRequest:
       properties:
         projectId:
-          description: "The id of the project."
-          type: "string"
+          "$ref": "#/components/schemas/ProjectId"
       required:
         - "projectId"
       type: "object"
     ListSnapshotsResponse:
       properties:
         projectId:
-          description: "The unique project UUID-V4."
-          type: "string"
+          "$ref": "#/components/schemas/ProjectId"
         snapshotInfos:
           description: "List of all active snapshots-infos within the project."
           items:
@@ -174,12 +159,14 @@ components:
         - "projectId"
         - "snapshotInfos"
       type: "object"
+    ProjectId:
+      description: "Project ID (UUID v4)."
+      format: "uuid"
+      type: "string"
     PutFsUpdateRequest:
       properties:
         projectId:
-          description: "Project ID (UUID v4)."
-          format: "uuid"
-          type: "string"
+          "$ref": "#/components/schemas/ProjectId"
         update:
           "$ref": "#/components/schemas/FsEntry"
       required:
@@ -191,9 +178,7 @@ components:
         newest:
           "$ref": "#/components/schemas/FsEntry"
         projectId:
-          description: "Project ID (UUID v4)."
-          format: "uuid"
-          type: "string"
+          "$ref": "#/components/schemas/ProjectId"
       required:
         - "projectId"
         - "newest"
@@ -213,17 +198,14 @@ components:
     RegisterProjectResponse:
       properties:
         projectId:
-          description: "Unique project UUID v4."
-          format: "uuid"
-          type: "string"
+          "$ref": "#/components/schemas/ProjectId"
       required:
         - "projectId"
       type: "object"
     Snapshot:
       properties:
         docId:
-          description: "The document ID of the snapshot."
-          type: "string"
+          "$ref": "#/components/schemas/DocId"
         hash:
           description: "The hash of the snapshot data."
           type: "string"
@@ -231,8 +213,7 @@ components:
           description: "The data of the snapshot, encoded in base64."
           type: "string"
         stamp:
-          description: "The unix timestamp when the snapshot was updated."
-          type: "integer"
+          "$ref": "#/components/schemas/UnixTimestamp"
         status:
           description: "The status of the snapshot within the project. E.g., \"active\", \"archived\", \"deleted\"."
           type: "string"
@@ -246,8 +227,7 @@ components:
     SnapshotInfo:
       properties:
         docId:
-          description: "The document ID of the snapshot."
-          type: "string"
+          "$ref": "#/components/schemas/DocId"
         hashPart:
           description: "The first 8 Bytes of the hash."
           type: "string"
@@ -255,6 +235,9 @@ components:
         - "docId"
         - "hashPart"
       type: "object"
+    UnixTimestamp:
+      description: "Unix timestamp in seconds."
+      type: "integer"
 info:
   description: |
     REST API for the Obsidian CRDT Sync Server.

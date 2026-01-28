@@ -5,7 +5,7 @@
         type: 'object',
         required: ['projectId', 'entries'],
         properties: {
-          projectId: { type: 'string', description: 'Project ID (UUID v4).' },
+          projectId: { "$ref": '#/components/schemas/ProjectId' },
           entries: {
             type: 'array',
             description: 'All file system entries present on the client.',
@@ -18,23 +18,12 @@
         type: 'object',
         required: ['projectId', 'updates'],
         properties: {
-          projectId: { type: 'string', format: 'uuid', description: 'Project ID (UUID v4).' },
+          projectId: { "$ref": '#/components/schemas/ProjectId' },
           updates: {
             type: 'array',
             description: 'List of server-side fs entry updates compared to the client entries.',
             items: { "$ref": '#/components/schemas/FsEntry' },
           },
-        },
-      },
-
-      FsEntry: {
-        type: 'object',
-        required: ['docId', 'path', 'stamp', 'status'],
-        properties: {
-          docId: { type: 'string', description: 'Document ID associated with the fs entry.' },
-          path: { type: 'string', description: 'Path of the fs entry relative to the project root.' },
-          stamp: { type: 'integer', description: 'Unix timestamp of the last update.' },
-          status: { type: 'string', description: 'Entry status within the project. Example: "active", "archived", "deleted".' },
         },
       },
     },

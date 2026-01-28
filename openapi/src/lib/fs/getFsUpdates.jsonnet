@@ -5,8 +5,8 @@
         type: 'object',
         required: ['projectId', 'timestamp'],
         properties: {
-          projectId: { type: 'string', description: 'Project ID (UUID v4).' },
-          timestamp: { type: 'integer', description: 'Unix timestamp after which to retrieve file system updates.' },
+          projectId: { "$ref": '#/components/schemas/ProjectId' },
+          timestamp: { "$ref": '#/components/schemas/UnixTimestamp' },
         },
       },
 
@@ -14,23 +14,12 @@
         type: 'object',
         required: ['projectId', 'updates'],
         properties: {
-          projectId: { type: 'string', description: 'Project ID (UUID v4).' },
+          projectId: { "$ref": '#/components/schemas/ProjectId' },
           updates: {
             type: 'array',
             description: 'List of file system updates since the given timestamp.',
             items: { "$ref": '#/components/schemas/FsEntry' },
           },
-        },
-      },
-
-      FsEntry: {
-        type: 'object',
-        required: ['docId', 'path', 'stamp', 'status'],
-        properties: {
-          docId: { type: 'string', description: 'Document ID associated with the fs entry.' },
-          path: { type: 'string', description: 'Path of the fs entry relative to the project root.' },
-          stamp: { type: 'integer', description: 'Unix timestamp of the last update.' },
-          status: { type: 'string', description: 'Entry status within the project. Example: "active", "archived", "deleted".' },
         },
       },
     },

@@ -5,8 +5,8 @@
         type: 'object',
         required: ['projectId', 'timestamp'],
         properties: {
-          projectId: { type: 'string', description: 'The id of the project.' },
-          timestamp: { type: 'integer', description: 'The unix timestamp after which to retrieve snapshot updates.' },
+          projectId: { "$ref": '#/components/schemas/ProjectId' },
+          timestamp: { "$ref": '#/components/schemas/UnixTimestamp' },
         },
       },
 
@@ -14,7 +14,7 @@
         type: 'object',
         required: ['projectId', 'updates'],
         properties: {
-          projectId: { type: 'string', description: 'The unique project UUID-V4.' },
+          projectId: { "$ref": '#/components/schemas/ProjectId' },
           updates: {
             type: 'array',
             description: 'List of updated snapshots since the given timestamp.',
@@ -27,9 +27,9 @@
         type: 'object',
         required: ['docId', 'snapshotData', 'stamp', 'hash', 'status'],
         properties: {
-          docId: { type: 'string', description: 'The document ID of the snapshot.' },
+          docId: { "$ref": '#/components/schemas/DocId' },
           snapshotData: { type: 'string', description: 'The data of the snapshot, encoded in base64.' },
-          stamp: { type: 'integer', description: 'The unix timestamp when the snapshot was updated.' },
+          stamp: { "$ref": '#/components/schemas/UnixTimestamp' },
           hash: { type: 'string', description: 'The hash of the snapshot data.' },
           status: { type: 'string', description: 'The status of the snapshot within the project. E.g., "active", "archived", "deleted".' },
         },

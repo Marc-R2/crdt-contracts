@@ -5,7 +5,7 @@
         type: 'object',
         required: ['projectId', 'update'],
         properties: {
-          projectId: { type: 'string', format: 'uuid', description: 'Project ID (UUID v4).' },
+          projectId: { "$ref": '#/components/schemas/ProjectId' },
           update: { "$ref": '#/components/schemas/FsEntry' },
         },
       },
@@ -14,19 +14,8 @@
         type: 'object',
         required: ['projectId', 'newest'],
         properties: {
-          projectId: { type: 'string', format: 'uuid', description: 'Project ID (UUID v4).' },
+          projectId: { "$ref": '#/components/schemas/ProjectId' },
           newest: { "$ref": '#/components/schemas/FsEntry' }
-        },
-      },
-
-      FsEntry: {
-        type: 'object',
-        required: ['docId', 'path', 'stamp', 'status'],
-        properties: {
-          docId: { type: 'string', description: 'Document ID associated with the fs entry.' },
-          path: { type: 'string', description: 'Path of the fs entry relative to the project root.' },
-          stamp: { type: 'integer', description: 'Unix timestamp of the last update.' },
-          status: { type: 'string', description: 'Entry status within the project. Example: "active", "archived", "deleted".' },
         },
       },
     },

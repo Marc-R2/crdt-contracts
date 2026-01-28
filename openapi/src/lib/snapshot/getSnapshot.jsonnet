@@ -5,8 +5,8 @@
         type: 'object',
         required: ['projectId', 'docId'],
         properties: {
-          projectId: { type: 'string', description: 'The id of the project.' },
-          docId: { type: 'string', description: 'The document ID of the snapshot to retrieve.' },
+          projectId: { "$ref": '#/components/schemas/ProjectId' },
+          docId: { "$ref": '#/components/schemas/DocId' },
         },
       },
 
@@ -14,10 +14,10 @@
         type: 'object',
         required: ['projectId', 'docId', 'snapshotData', 'stamp', 'hash', 'status'],
         properties: {
-          projectId: { type: 'string', description: 'The unique project UUID-V4.' },
-          docId: { type: 'string', description: 'The document ID of the snapshot.' },
+          projectId: { "$ref": '#/components/schemas/ProjectId' },
+          docId: { "$ref": '#/components/schemas/DocId' },
           snapshotData: { type: 'string', description: 'The data of the snapshot, encoded in base64.' },
-          stamp: { type: 'integer', description: 'The unix timestamp when the snapshot was updated.' },
+          stamp: { "$ref": '#/components/schemas/UnixTimestamp' },
           hash: { type: 'string', description: 'The hash of the snapshot data.' },
           status: { type: 'string', description: 'The status of the snapshot within the project. E.g., "active", "archived", "deleted".' },
         },

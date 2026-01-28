@@ -49,6 +49,7 @@ std.manifestYamlDoc(
             },
           },
         }
+        + Index.components.schemas
         + ProjectRegister.components.schemas
 
         + getFsSync.components.schemas

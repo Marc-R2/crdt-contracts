@@ -5,7 +5,7 @@
         type: 'object',
         required: ['projectId'],
         properties: {
-          projectId: { type: 'string', description: 'The id of the project.' },
+          projectId: { "$ref": '#/components/schemas/ProjectId' },
         },
       },
 
@@ -13,23 +13,23 @@
         type: 'object',
         required: ['projectId', 'snapshotInfos'],
         properties: {
-          projectId: { type: 'string', description: 'The unique project UUID-V4.' },
+          projectId: { "$ref": '#/components/schemas/ProjectId' },
           snapshotInfos: {
-         	type: 'array',
+            type: 'array',
             description: 'List of all active snapshots-infos within the project.',
-      	    items: { "$ref": '#/components/schemas/SnapshotInfo' },
-      	  },
+            items: { "$ref": '#/components/schemas/SnapshotInfo' },
+          },
         },
       },
 
       SnapshotInfo: {
-		type: 'object',
-		required: ['docId', 'hashPart'],
-		properties: {
-		  docId: { type: 'string', description: 'The document ID of the snapshot.' },
-		  hashPart: { type: 'string', description: 'The first 8 Bytes of the hash.' },
-		},
-	  },
+        type: 'object',
+        required: ['docId', 'hashPart'],
+        properties: {
+          docId: { "$ref": '#/components/schemas/DocId' },
+          hashPart: { type: 'string', description: 'The first 8 Bytes of the hash.' },
+        },
+      },
     },
   },
 
