@@ -11,6 +11,190 @@ components:
           example: "A brief description of the error."
           type: "string"
       type: "object"
+    FsEntry:
+      properties:
+        docId:
+          description: "The document ID associated with the fs-entry."
+          type: "string"
+        path:
+          description: "The path of the fs-entry, relative to the project root."
+          type: "string"
+        stamp:
+          description: "The unix timestamp when the fs-entry was updated."
+          type: "integer"
+        status:
+          description: "The status of the fs-entry within the project. E.g., \"active\", \"archived\", \"deleted\"."
+          type: "string"
+      required:
+        - "docId"
+        - "path"
+        - "stamp"
+        - "status"
+      type: "object"
+    GetFsSyncRequest:
+      properties:
+        entries:
+          description: "List of all file system entries present on client."
+          items:
+            "$ref": "#/components/schemas/FsEntry"
+          type: "array"
+        projectId:
+          description: "The id of the project."
+          type: "string"
+      required:
+        - "projectId"
+        - "entries"
+      type: "object"
+    GetFsSyncResponse:
+      properties:
+        projectId:
+          description: "The unique project UUID-V4."
+          type: "string"
+        updates:
+          description: "List of changed or new file system entries in comparison to the client-provided entries."
+          items:
+            "$ref": "#/components/schemas/FsEntry"
+          type: "array"
+      required:
+        - "projectId"
+        - "updates"
+      type: "object"
+    GetFsUpdatesRequest:
+      properties:
+        projectId:
+          description: "The id of the project."
+          type: "string"
+        timestamp:
+          description: "The unix timestamp after which to retrieve file system updates."
+          type: "integer"
+      required:
+        - "projectId"
+        - "timestamp"
+      type: "object"
+    GetFsUpdatesResponse:
+      properties:
+        projectId:
+          description: "The unique project UUID-V4."
+          type: "string"
+        updates:
+          description: "List of file system updates since the given timestamp."
+          items:
+            "$ref": "#/components/schemas/FsEntry"
+          type: "array"
+      required:
+        - "projectId"
+        - "updates"
+      type: "object"
+    GetSnapshotRequest:
+      properties:
+        docId:
+          description: "The document ID of the snapshot to retrieve."
+          type: "string"
+        projectId:
+          description: "The id of the project."
+          type: "string"
+      required:
+        - "projectId"
+        - "docId"
+      type: "object"
+    GetSnapshotResponse:
+      properties:
+        docId:
+          description: "The document ID of the snapshot."
+          type: "string"
+        hash:
+          description: "The hash of the snapshot data."
+          type: "string"
+        projectId:
+          description: "The unique project UUID-V4."
+          type: "string"
+        snapshotData:
+          description: "The data of the snapshot, encoded in base64."
+          type: "string"
+        stamp:
+          description: "The unix timestamp when the snapshot was updated."
+          type: "integer"
+        status:
+          description: "The status of the snapshot within the project. E.g., \"active\", \"archived\", \"deleted\"."
+          type: "string"
+      required:
+        - "projectId"
+        - "docId"
+        - "snapshotData"
+        - "stamp"
+        - "hash"
+        - "status"
+      type: "object"
+    GetSnapshotUpdatesRequest:
+      properties:
+        projectId:
+          description: "The id of the project."
+          type: "string"
+        timestamp:
+          description: "The unix timestamp after which to retrieve snapshot updates."
+          type: "integer"
+      required:
+        - "projectId"
+        - "timestamp"
+      type: "object"
+    GetSnapshotUpdatesResponse:
+      properties:
+        projectId:
+          description: "The unique project UUID-V4."
+          type: "string"
+        updates:
+          description: "List of updated snapshots since the given timestamp."
+          items:
+            "$ref": "#/components/schemas/Snapshot"
+          type: "array"
+      required:
+        - "projectId"
+        - "updates"
+      type: "object"
+    ListSnapshotsRequest:
+      properties:
+        projectId:
+          description: "The id of the project."
+          type: "string"
+      required:
+        - "projectId"
+      type: "object"
+    ListSnapshotsResponse:
+      properties:
+        projectId:
+          description: "The unique project UUID-V4."
+          type: "string"
+        snapshotInfos:
+          description: "List of all active snapshots-infos within the project."
+          items:
+            "$ref": "#/components/schemas/SnapshotInfo"
+          type: "array"
+      required:
+        - "projectId"
+        - "snapshotInfos"
+      type: "object"
+    PutFsUpdateRequest:
+      properties:
+        projectId:
+          description: "The id of the project."
+          type: "string"
+        update:
+          "$ref": "#/components/schemas/FsEntry"
+      required:
+        - "projectId"
+        - "timestamp"
+      type: "object"
+    PutFsUpdateResponse:
+      properties:
+        newest:
+          "$ref": "#/components/schemas/FsEntry"
+        projectId:
+          description: "The unique project UUID-V4."
+          type: "string"
+      required:
+        - "projectId"
+        - "newest"
+      type: "object"
     RegisterProjectRequest:
       properties:
         projectName:
@@ -27,9 +211,46 @@ components:
       properties:
         projectId:
           description: "The unique project UUID-V4."
+          format: "uuid"
           type: "string"
       required:
         - "projectId"
+      type: "object"
+    Snapshot:
+      properties:
+        docId:
+          description: "The document ID of the snapshot."
+          type: "string"
+        hash:
+          description: "The hash of the snapshot data."
+          type: "string"
+        snapshotData:
+          description: "The data of the snapshot, encoded in base64."
+          type: "string"
+        stamp:
+          description: "The unix timestamp when the snapshot was updated."
+          type: "integer"
+        status:
+          description: "The status of the snapshot within the project. E.g., \"active\", \"archived\", \"deleted\"."
+          type: "string"
+      required:
+        - "docId"
+        - "snapshotData"
+        - "stamp"
+        - "hash"
+        - "status"
+      type: "object"
+    SnapshotInfo:
+      properties:
+        docId:
+          description: "The document ID of the snapshot."
+          type: "string"
+        hashPart:
+          description: "The first 8 Bytes of the hash."
+          type: "string"
+      required:
+        - "docId"
+        - "hashPart"
       type: "object"
 info:
   description: |
@@ -85,6 +306,81 @@ paths:
       summary: "Returns basic server information."
       tags:
         - "System"
+  /fs/getSync:
+    post:
+      description: "Registers a new project with the given projectName and publicKey. Returns a unique projectId."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/GetFsSyncRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/GetFsSyncResponse"
+          description: "Project registered successfully."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Invalid input."
+      summary: "Register a new project and receive a projectId."
+      tags:
+        - "File System"
+  /fs/getUpdates:
+    post:
+      description: "Get all file system updates after a specific timestamp within a project."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/GetFsUpdatesRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/GetFsUpdatesResponse"
+          description: "File System updates provided."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Invalid input."
+      summary: "Get file system updates."
+      tags:
+        - "File System"
+  /fs/putUpdate:
+    put:
+      description: "Registers a new project with the given projectName and publicKey. Returns a unique projectId."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/PutFsUpdateRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/PutFsUpdateResponse"
+          description: "Project registered successfully."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Invalid input."
+      summary: "Register a new project and receive a projectId."
+      tags:
+        - "File System"
   /openapi.yaml:
     get:
       responses:
@@ -118,6 +414,81 @@ paths:
       summary: "Register a new project and receive a projectId."
       tags:
         - "Project"
+  /snapshot/get:
+    post:
+      description: "Get a specific snapshot by its ID in the project."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/GetSnapshotRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/GetSnapshotResponse"
+          description: "Snapshot provided."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Invalid input."
+      summary: "Get a snapshot."
+      tags:
+        - "Snapshot"
+  /snapshot/getUpdates:
+    post:
+      description: "Get all updated snapshots after a specific timestamp within a project."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/GetSnapshotUpdatesRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/GetSnapshotUpdatesResponse"
+          description: "Snapshots provided."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Invalid input."
+      summary: "Get snapshot updates."
+      tags:
+        - "Snapshot"
+  /snapshot/list:
+    post:
+      description: "Get a list of all snapshot-infos within a project. Snapshot-info is a minimal representation of a snapshot containing only the docId and the first 8 bytes of the hash."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/ListSnapshotsRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ListSnapshotsResponse"
+          description: "Project registered successfully."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Invalid input."
+      summary: "Get list of snapshots."
+      tags:
+        - "Snapshot"
 servers:
   - description: "HTTP REST API"
     url: "http://{host}:{port}"

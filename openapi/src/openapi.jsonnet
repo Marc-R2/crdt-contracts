@@ -1,6 +1,14 @@
-local Get = import 'get.jsonnet';
 local Index = import 'index.jsonnet';
+
+local getFsSync = import 'fs/getFsSync.jsonnet';
+local getFsUpdates = import 'fs/getFsUpdates.jsonnet';
+local putFsUpdate = import 'fs/putFsUpdate.jsonnet';
+
 local ProjectRegister = import 'project/register.jsonnet';
+
+local getSnapshot = import 'snapshot/getSnapshot.jsonnet';
+local getSnapshotUpdates = import 'snapshot/getSnapshotUpdates.jsonnet';
+local listSnapshots = import 'snapshot/listSnapshots.jsonnet';
 
 std.manifestYamlDoc(
   {
@@ -42,13 +50,33 @@ std.manifestYamlDoc(
           },
         }
         + ProjectRegister.components.schemas
+
+        + getFsSync.components.schemas
+		+ getFsUpdates.components.schemas
+		+ putFsUpdate.components.schemas
+
+		+ getSnapshot.components.schemas
+		+ getSnapshotUpdates.components.schemas
+		+ listSnapshots.components.schemas
       ),
     },
 
     paths: (
       {}
       + Index.paths
+
+      # /register/*
       + ProjectRegister.paths
+
+      # /fs/*
+      + getFsSync.paths
+      + getFsUpdates.paths
+      + putFsUpdate.paths
+
+      # /snapshot/*
+      + getSnapshot.paths
+      + getSnapshotUpdates.paths
+      + listSnapshots.paths
     ),
   },
   quote_keys=false,
