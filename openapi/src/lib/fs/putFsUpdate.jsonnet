@@ -5,7 +5,7 @@
         type: 'object',
         required: ['projectId', 'update'],
         properties: {
-          projectId: { type: 'string', description: 'The id of the project.' },
+          projectId: { type: 'string', format: 'uuid', description: 'Project ID (UUID v4).' },
           update: { "$ref": '#/components/schemas/FsEntry' },
         },
       },
@@ -14,7 +14,7 @@
         type: 'object',
         required: ['projectId', 'newest'],
         properties: {
-          projectId: { type: 'string', description: 'The unique project UUID-V4.' },
+          projectId: { type: 'string', format: 'uuid', description: 'Project ID (UUID v4).' },
           newest: { "$ref": '#/components/schemas/FsEntry' }
         },
       },
@@ -23,10 +23,10 @@
         type: 'object',
         required: ['docId', 'path', 'stamp', 'status'],
         properties: {
-          docId: { type: 'string', description: 'The document ID associated with the fs-entry.' },
-          path: { type: 'string', description: 'The path of the fs-entry, relative to the project root.' },
-          stamp: { type: 'integer', description: 'The unix timestamp when the fs-entry was updated.' },
-          status: { type: 'string', description: 'The status of the fs-entry within the project. E.g., "active", "archived", "deleted".' },
+          docId: { type: 'string', description: 'Document ID associated with the fs entry.' },
+          path: { type: 'string', description: 'Path of the fs entry relative to the project root.' },
+          stamp: { type: 'integer', description: 'Unix timestamp of the last update.' },
+          status: { type: 'string', description: 'Entry status within the project. Example: "active", "archived", "deleted".' },
         },
       },
     },
@@ -37,7 +37,7 @@
       put: {
         tags: ['File System'],
         summary: 'Submit a file system update.',
-        description: 'Stores a single fs-entry update for a project and returns the newest entry for that document.',
+        description: 'Stores a single fs entry update for a project and returns the newest entry for that document.',
         requestBody: {
           required: true,
           content: { 'application/json': { schema: { "$ref": '#/components/schemas/PutFsUpdateRequest' } } },

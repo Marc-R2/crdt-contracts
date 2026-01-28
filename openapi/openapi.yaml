@@ -14,16 +14,16 @@ components:
     FsEntry:
       properties:
         docId:
-          description: "The document ID associated with the fs-entry."
+          description: "Document ID associated with the fs entry."
           type: "string"
         path:
-          description: "The path of the fs-entry, relative to the project root."
+          description: "Path of the fs entry relative to the project root."
           type: "string"
         stamp:
-          description: "The unix timestamp when the fs-entry was updated."
+          description: "Unix timestamp of the last update."
           type: "integer"
         status:
-          description: "The status of the fs-entry within the project. E.g., \"active\", \"archived\", \"deleted\"."
+          description: "Entry status within the project. Example: \"active\", \"archived\", \"deleted\"."
           type: "string"
       required:
         - "docId"
@@ -34,12 +34,12 @@ components:
     GetFsSyncRequest:
       properties:
         entries:
-          description: "List of all file system entries present on client."
+          description: "All file system entries present on the client."
           items:
             "$ref": "#/components/schemas/FsEntry"
           type: "array"
         projectId:
-          description: "The id of the project."
+          description: "Project ID (UUID v4)."
           type: "string"
       required:
         - "projectId"
@@ -48,10 +48,11 @@ components:
     GetFsSyncResponse:
       properties:
         projectId:
-          description: "The unique project UUID-V4."
+          description: "Project ID (UUID v4)."
+          format: "uuid"
           type: "string"
         updates:
-          description: "List of changed or new file system entries in comparison to the client-provided entries."
+          description: "List of server-side fs entry updates compared to the client entries."
           items:
             "$ref": "#/components/schemas/FsEntry"
           type: "array"
@@ -62,10 +63,10 @@ components:
     GetFsUpdatesRequest:
       properties:
         projectId:
-          description: "The id of the project."
+          description: "Project ID (UUID v4)."
           type: "string"
         timestamp:
-          description: "The unix timestamp after which to retrieve file system updates."
+          description: "Unix timestamp after which to retrieve file system updates."
           type: "integer"
       required:
         - "projectId"
@@ -74,7 +75,7 @@ components:
     GetFsUpdatesResponse:
       properties:
         projectId:
-          description: "The unique project UUID-V4."
+          description: "Project ID (UUID v4)."
           type: "string"
         updates:
           description: "List of file system updates since the given timestamp."
@@ -176,20 +177,22 @@ components:
     PutFsUpdateRequest:
       properties:
         projectId:
-          description: "The id of the project."
+          description: "Project ID (UUID v4)."
+          format: "uuid"
           type: "string"
         update:
           "$ref": "#/components/schemas/FsEntry"
       required:
         - "projectId"
-        - "timestamp"
+        - "update"
       type: "object"
     PutFsUpdateResponse:
       properties:
         newest:
           "$ref": "#/components/schemas/FsEntry"
         projectId:
-          description: "The unique project UUID-V4."
+          description: "Project ID (UUID v4)."
+          format: "uuid"
           type: "string"
       required:
         - "projectId"
@@ -198,10 +201,10 @@ components:
     RegisterProjectRequest:
       properties:
         projectName:
-          description: "The name of the project to register."
+          description: "Human-readable name of the project."
           type: "string"
         publicKey:
-          description: "The public key for the project."
+          description: "Project public key used by clients."
           type: "string"
       required:
         - "projectName"
@@ -210,7 +213,7 @@ components:
     RegisterProjectResponse:
       properties:
         projectId:
-          description: "The unique project UUID-V4."
+          description: "Unique project UUID v4."
           format: "uuid"
           type: "string"
       required:
@@ -257,8 +260,8 @@ info:
     REST API for the Obsidian CRDT Sync Server.
     
     This server enables real-time collaboration using Yjs as a CRDT. Documents are synchronized over WebSocket and persisted with SQLite.
-    The REST API provides endpoints for authentication, project management, filetree synchronization, and more.
-    Planned is also support for larger files using chunking and binary data transfer.
+    The REST API provides endpoints for project management, file system synchronization, and snapshot access.
+    Planned support includes larger files using chunking and binary data transfer.
     
     **Features:**
     - WebSocket-based real-time synchronization
@@ -266,7 +269,7 @@ info:
     - Awareness support (cursor, users, selection)
     - Yjs CRDT for conflict-free collaboration
     - Register and manage projects
-    - Update and retrieve filetrees of projects
+    - Update and retrieve file system entries
     - Startup synchronization of projects
     
     The WebSocket server runs on port 1234 by default.
@@ -276,7 +279,7 @@ openapi: "3.0.2"
 paths:
   /:
     get:
-      description: "Provides basic information about the CRDT Sync Server. This endpoint can be used to check server availability."
+      description: "Returns basic information about the CRDT Sync Server for health checks."
       responses:
         "200":
           content:
@@ -284,31 +287,31 @@ paths:
               schema:
                 properties:
                   ok:
-                    description: "'OK'"
+                    description: "Literal 'OK'."
                     type: "string"
                   service:
-                    description: "'Obsidian CRDT Sync Server'"
+                    description: "Service name."
                     type: "string"
                   versions:
                     properties:
                       hocuspocus:
-                        description: "Hocuspocus server version"
+                        description: "Hocuspocus server version."
                         type: "string"
                       self:
-                        description: "Server version"
+                        description: "Server version."
                         type: "string"
                       yjs:
-                        description: "Yjs version"
+                        description: "Yjs version."
                         type: "string"
                     type: "object"
                 type: "object"
-          description: "Success"
-      summary: "Returns basic server information."
+          description: "Server info returned successfully."
+      summary: "Return basic server information."
       tags:
         - "System"
   /fs/getSync:
     post:
-      description: "Registers a new project with the given projectName and publicKey. Returns a unique projectId."
+      description: "Compares client entries against the server state and returns the fs-entry updates needed to sync."
       requestBody:
         content:
           application/json:
@@ -321,19 +324,19 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/GetFsSyncResponse"
-          description: "Project registered successfully."
+          description: "Sync updates returned successfully."
         "400":
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
           description: "Invalid input."
-      summary: "Register a new project and receive a projectId."
+      summary: "Get file system sync updates."
       tags:
         - "File System"
   /fs/getUpdates:
     post:
-      description: "Get all file system updates after a specific timestamp within a project."
+      description: "Returns all file system updates after a specific timestamp within a project."
       requestBody:
         content:
           application/json:
@@ -346,7 +349,7 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/GetFsUpdatesResponse"
-          description: "File System updates provided."
+          description: "File system updates returned successfully."
         "400":
           content:
             application/json:
@@ -358,7 +361,7 @@ paths:
         - "File System"
   /fs/putUpdate:
     put:
-      description: "Registers a new project with the given projectName and publicKey. Returns a unique projectId."
+      description: "Stores a single fs entry update for a project and returns the newest entry for that document."
       requestBody:
         content:
           application/json:
@@ -371,27 +374,27 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/PutFsUpdateResponse"
-          description: "Project registered successfully."
+          description: "Update stored successfully."
         "400":
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
           description: "Invalid input."
-      summary: "Register a new project and receive a projectId."
+      summary: "Submit a file system update."
       tags:
         - "File System"
   /openapi.yaml:
     get:
       responses:
         "200":
-          description: "Success"
-      summary: "Returns OpenAPI YAML document describing the capabilities of this API."
+          description: "OpenAPI YAML document."
+      summary: "Return the OpenAPI YAML document for this API."
       tags:
         - "System"
   /project/register:
     post:
-      description: "Registers a new project with the given projectName and publicKey. Returns a unique projectId."
+      description: "Registers a new project with the given projectName and publicKey and returns the projectId."
       requestBody:
         content:
           application/json:
@@ -411,7 +414,7 @@ paths:
               schema:
                 "$ref": "#/components/schemas/Error"
           description: "Invalid input."
-      summary: "Register a new project and receive a projectId."
+      summary: "Register a new project and return its projectId."
       tags:
         - "Project"
   /snapshot/get:
@@ -479,7 +482,7 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/ListSnapshotsResponse"
-          description: "Project registered successfully."
+          description: "Snapshot list returned successfully."
         "400":
           content:
             application/json:

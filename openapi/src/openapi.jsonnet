@@ -15,7 +15,7 @@ std.manifestYamlDoc(
     openapi: '3.0.2',
     info: {
       title: 'Obsidian CRDT Sync Server API',
-      description: "REST API for the Obsidian CRDT Sync Server.\n\nThis server enables real-time collaboration using Yjs as a CRDT. Documents are synchronized over WebSocket and persisted with SQLite.\nThe REST API provides endpoints for authentication, project management, filetree synchronization, and more.\nPlanned is also support for larger files using chunking and binary data transfer.\n\n**Features:**\n- WebSocket-based real-time synchronization\n- SQLite persistence with Hocuspocus\n- Awareness support (cursor, users, selection)\n- Yjs CRDT for conflict-free collaboration\n- Register and manage projects\n- Update and retrieve filetrees of projects\n- Startup synchronization of projects\n\nThe WebSocket server runs on port 1234 by default.\n",
+      description: "REST API for the Obsidian CRDT Sync Server.\n\nThis server enables real-time collaboration using Yjs as a CRDT. Documents are synchronized over WebSocket and persisted with SQLite.\nThe REST API provides endpoints for project management, file system synchronization, and snapshot access.\nPlanned support includes larger files using chunking and binary data transfer.\n\n**Features:**\n- WebSocket-based real-time synchronization\n- SQLite persistence with Hocuspocus\n- Awareness support (cursor, users, selection)\n- Yjs CRDT for conflict-free collaboration\n- Register and manage projects\n- Update and retrieve file system entries\n- Startup synchronization of projects\n\nThe WebSocket server runs on port 1234 by default.\n",
       version: '0.0.1',
     },
 

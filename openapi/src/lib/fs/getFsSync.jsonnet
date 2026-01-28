@@ -5,10 +5,10 @@
         type: 'object',
         required: ['projectId', 'entries'],
         properties: {
-          projectId: { type: 'string', description: 'The id of the project.' },
+          projectId: { type: 'string', description: 'Project ID (UUID v4).' },
           entries: {
             type: 'array',
-            description: 'List of all file system entries present on client.',
+            description: 'All file system entries present on the client.',
             items: { "$ref": '#/components/schemas/FsEntry' },
           },
         },
@@ -18,25 +18,25 @@
         type: 'object',
         required: ['projectId', 'updates'],
         properties: {
-          projectId: { type: 'string', description: 'The unique project UUID-V4.' },
+          projectId: { type: 'string', format: 'uuid', description: 'Project ID (UUID v4).' },
           updates: {
-          	type: 'array',
-          	description: 'List of changed or new file system entries in comparison to the client-provided entries.',
-		  	items: { "$ref": '#/components/schemas/FsEntry' },
-		  },
+            type: 'array',
+            description: 'List of server-side fs entry updates compared to the client entries.',
+            items: { "$ref": '#/components/schemas/FsEntry' },
+          },
         },
       },
 
       FsEntry: {
-		type: 'object',
-		required: ['docId', 'path', 'stamp', 'status'],
-		properties: {
-		  docId: { type: 'string', description: 'The document ID associated with the fs-entry.' },
-		  path: { type: 'string', description: 'The path of the fs-entry, relative to the project root.' },
-		  stamp: { type: 'integer', description: 'The unix timestamp when the fs-entry was updated.' },
-		  status: { type: 'string', description: 'The status of the fs-entry within the project. E.g., "active", "archived", "deleted".' },
-		},
-	  },
+        type: 'object',
+        required: ['docId', 'path', 'stamp', 'status'],
+        properties: {
+          docId: { type: 'string', description: 'Document ID associated with the fs entry.' },
+          path: { type: 'string', description: 'Path of the fs entry relative to the project root.' },
+          stamp: { type: 'integer', description: 'Unix timestamp of the last update.' },
+          status: { type: 'string', description: 'Entry status within the project. Example: "active", "archived", "deleted".' },
+        },
+      },
     },
   },
 
