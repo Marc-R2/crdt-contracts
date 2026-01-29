@@ -10,9 +10,22 @@
         required: ['docId', 'path', 'stamp', 'status'],
         properties: {
           docId: { "$ref": '#/components/schemas/DocId' },
-          path: { type: 'string', description: 'Path of the fs entry relative to the project root.' },
-          stamp: { "$ref": '#/components/schemas/UnixTimestamp' },
-          status: { type: 'string', description: 'Entry status within the project. Example: "active", "archived", "deleted".' },
+          path: {
+            type: 'string',
+            description: 'Path of the fs entry relative to the project root. Use forward slashes, no leading slash, case-sensitive.',
+          },
+          stamp: {
+            "$ref": '#/components/schemas/UnixTimestamp',
+            description: 'Client-provided modification time (offline-first). Server validates plausibility and uses LWW by stamp.',
+          },
+          status: {
+            type: 'string',
+            description: 'Entry status within the project. Example: "active", "archived", "deleted".',
+          },
+          updated: {
+            "$ref": '#/components/schemas/UnixTimestamp',
+            description: 'Server write timestamp for this entry. Used as a tie-breaker when stamps are equal.',
+          },
         },
       },
     },

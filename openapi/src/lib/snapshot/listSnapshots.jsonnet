@@ -6,6 +6,10 @@
         required: ['projectId'],
         properties: {
           projectId: { "$ref": '#/components/schemas/ProjectId' },
+          includeDeleted: {
+            type: 'boolean',
+            description: 'If true, include deleted snapshots; defaults to false (active only).',
+          },
         },
       },
 
@@ -38,7 +42,7 @@
       post: {
         tags: ['Snapshot'],
         summary: 'Get list of snapshots.',
-        description: 'Get a list of all snapshot-infos within a project. Snapshot-info is a minimal representation of a snapshot containing only the docId and the first 8 bytes of the hash.',
+        description: 'Get a list of snapshot-infos within a project. Snapshot-info is a minimal representation containing only the docId and the first 8 bytes of the hash. Deleted snapshots are excluded unless includeDeleted is true.',
         requestBody: {
           required: true,
           content: { 'application/json': { schema: { "$ref": '#/components/schemas/ListSnapshotsRequest' } } },

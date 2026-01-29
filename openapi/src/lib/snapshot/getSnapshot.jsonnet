@@ -30,7 +30,7 @@
       post: {
         tags: ['Snapshot'],
         summary: 'Get a snapshot.',
-        description: 'Get a specific snapshot by its ID in the project.',
+        description: 'Get the newest snapshot for a docId in the project. Snapshots are mutable and updated incrementally by Hocuspocus.',
         requestBody: {
           required: true,
           content: { 'application/json': { schema: { "$ref": '#/components/schemas/GetSnapshotRequest' } } },

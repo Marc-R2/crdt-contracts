@@ -30,7 +30,7 @@
       post: {
         tags: ['File System'],
         summary: 'Get file system updates.',
-        description: 'Returns all file system updates after a specific timestamp within a project.',
+        description: 'Returns all file system updates after a specific timestamp within a project. Uses LWW by client stamp with server validation.',
         requestBody: {
           required: true,
           content: { 'application/json': { schema: { "$ref": '#/components/schemas/GetFsUpdatesRequest' } } },

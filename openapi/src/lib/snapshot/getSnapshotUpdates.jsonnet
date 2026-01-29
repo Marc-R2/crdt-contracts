@@ -7,6 +7,10 @@
         properties: {
           projectId: { "$ref": '#/components/schemas/ProjectId' },
           timestamp: { "$ref": '#/components/schemas/UnixTimestamp' },
+          includeDeleted: {
+            type: 'boolean',
+            description: 'If true, include deleted snapshots; defaults to false (active only).',
+          },
         },
       },
 
@@ -42,7 +46,7 @@
       post: {
         tags: ['Snapshot'],
         summary: 'Get snapshot updates.',
-        description: 'Get all updated snapshots after a specific timestamp within a project.',
+        description: 'Get all updated snapshots after a specific timestamp within a project. Deleted snapshots are excluded unless includeDeleted is true.',
         requestBody: {
           required: true,
           content: { 'application/json': { schema: { "$ref": '#/components/schemas/GetSnapshotUpdatesRequest' } } },
