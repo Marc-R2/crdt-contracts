@@ -451,7 +451,6 @@ paths:
           description: "Invalid input."
       summary: "Authenticate a project using the challenge response."
       tags:
-        - "Project"
         - "Authentication"
   /project/authChallenge:
     post:
@@ -477,7 +476,6 @@ paths:
           description: "Invalid input."
       summary: "Request an authentication challenge."
       tags:
-        - "Project"
         - "Authentication"
   /project/register:
     post:
