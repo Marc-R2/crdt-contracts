@@ -35,8 +35,12 @@ components:
         token:
           description: "(encypted) Authentication token for the project."
           type: "string"
+        ttl:
+          description: "Time-to-live (in seconds) for the authentication token."
+          type: "number"
       required:
         - "token"
+        - "ttl"
       type: "object"
     DocId:
       description: "Document ID."
