@@ -5,6 +5,8 @@ local getFsUpdates = import 'fs/getFsUpdates.jsonnet';
 local putFsUpdate = import 'fs/putFsUpdate.jsonnet';
 
 local ProjectRegister = import 'project/register.jsonnet';
+local ProjectAuthChallenge = import 'project/authChallenge.jsonnet';
+local ProjectAuth = import 'project/auth.jsonnet';
 
 local getSnapshot = import 'snapshot/getSnapshot.jsonnet';
 local getSnapshotUpdates = import 'snapshot/getSnapshotUpdates.jsonnet';
@@ -50,7 +52,10 @@ std.manifestYamlDoc(
           },
         }
         + Index.components.schemas
+
         + ProjectRegister.components.schemas
+        + ProjectAuthChallenge.components.schemas
+        + ProjectAuth.components.schemas
 
         + getFsSync.components.schemas
 		+ getFsUpdates.components.schemas
@@ -68,6 +73,8 @@ std.manifestYamlDoc(
 
       # /register/*
       + ProjectRegister.paths
+      + ProjectAuthChallenge.paths
+      + ProjectAuth.paths
 
       # /fs/*
       + getFsSync.paths

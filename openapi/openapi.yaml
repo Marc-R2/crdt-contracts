@@ -1,5 +1,43 @@
 components:
   schemas:
+    AuthChallengeRequest:
+      properties:
+        projectId:
+          "$ref": "#/components/schemas/ProjectId"
+      required:
+        - "projectId"
+      type: "object"
+    AuthChallengeResponse:
+      properties:
+        challenge:
+          description: "(encypted) The authentication challenge to be solved to authenticate the project."
+          type: "string"
+        challengeId:
+          description: "(encypted) Identifier for the authentication challenge."
+          type: "string"
+      required:
+        - "projectId"
+      type: "object"
+    AuthProjectRequest:
+      properties:
+        challengeId:
+          description: "Identifier for the authentication challenge."
+          type: "string"
+        challengeResponse:
+          description: "Response to the authentication challenge."
+          type: "string"
+      required:
+        - "challengeId"
+        - "challengeResponse"
+      type: "object"
+    AuthProjectResponse:
+      properties:
+        token:
+          description: "(encypted) Authentication token for the project."
+          type: "string"
+      required:
+        - "token"
+      type: "object"
     DocId:
       description: "Document ID."
       type: "string"
@@ -385,6 +423,58 @@ paths:
       summary: "Return the OpenAPI YAML document for this API."
       tags:
         - "System"
+  /project/auth:
+    post:
+      description: "Authenticate a project by providing the response to the previously obtained authentication challenge."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AuthProjectRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AuthProjectResponse"
+          description: "Project registered successfully."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Invalid input."
+      summary: "Authenticate a project using the challenge response."
+      tags:
+        - "Project"
+        - "Authentication"
+  /project/authChallenge:
+    post:
+      description: "To authenticate for a project, request an authentication challenge using the projectId."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AuthChallengeRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AuthChallengeResponse"
+          description: "Authentication challenge provided."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Invalid input."
+      summary: "Request an authentication challenge."
+      tags:
+        - "Project"
+        - "Authentication"
   /project/register:
     post:
       description: "Registers a new project with the given projectName and publicKey and returns the projectId."
