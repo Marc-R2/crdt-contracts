@@ -16,7 +16,8 @@ components:
           description: "(encypted) Identifier for the authentication challenge."
           type: "string"
       required:
-        - "projectId"
+        - "challengeId"
+        - "challenge"
       type: "object"
     AuthProjectRequest:
       properties:
@@ -258,7 +259,7 @@ components:
       type: "integer"
   securitySchemes:
     BearerAuth:
-      bearerFormat: "JWT"
+      description: "Opaque bearer token issued by the server (not a JWT)."
       scheme: "bearer"
       type: "http"
 info:
