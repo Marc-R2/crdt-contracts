@@ -37,7 +37,7 @@ components:
           description: "(encypted) Authentication token for the project."
           type: "string"
         ttl:
-          description: "Time-to-live (in seconds) for the authentication token."
+          description: "Time-to-live (in milliseconds) for the authentication token."
           type: "number"
       required:
         - "token"
@@ -255,7 +255,7 @@ components:
         - "hashPart"
       type: "object"
     UnixTimestamp:
-      description: "Unix timestamp in seconds."
+      description: "Unix timestamp in milliseconds."
       type: "integer"
   securitySchemes:
     BearerAuth:

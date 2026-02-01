@@ -4,7 +4,7 @@
       // Define any shared schemas here if needed in the future
       ProjectId: { type: 'string', format: 'uuid', description: 'Project ID (UUID v4).' },
       DocId: { type: 'string', description: 'Document ID.' },
-      UnixTimestamp: { type: 'integer', description: 'Unix timestamp in seconds.' },
+      UnixTimestamp: { type: 'integer', description: 'Unix timestamp in milliseconds.' },
       FsEntry: {
         type: 'object',
         required: ['docId', 'path', 'stamp', 'status'],
