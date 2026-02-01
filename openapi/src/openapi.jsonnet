@@ -65,7 +65,17 @@ std.manifestYamlDoc(
 		+ getSnapshotUpdates.components.schemas
 		+ listSnapshots.components.schemas
       ),
+
+	  securitySchemes: {
+		BearerAuth: {
+			type: 'http',
+			scheme: 'bearer',
+			bearerFormat: 'JWT',
+		},
+	  },
     },
+
+	security: [ { BearerAuth: [] } ],
 
     paths: (
       {}

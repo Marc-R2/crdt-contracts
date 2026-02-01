@@ -290,6 +290,11 @@ components:
     UnixTimestamp:
       description: "Unix timestamp in seconds."
       type: "integer"
+  securitySchemes:
+    BearerAuth:
+      bearerFormat: "JWT"
+      scheme: "bearer"
+      type: "http"
 info:
   description: |
     REST API for the Obsidian CRDT Sync Server.
@@ -449,6 +454,7 @@ paths:
               schema:
                 "$ref": "#/components/schemas/Error"
           description: "Invalid input."
+      security: []
       summary: "Authenticate a project using the challenge response."
       tags:
         - "Authentication"
@@ -474,6 +480,7 @@ paths:
               schema:
                 "$ref": "#/components/schemas/Error"
           description: "Invalid input."
+      security: []
       summary: "Request an authentication challenge."
       tags:
         - "Authentication"
@@ -499,6 +506,7 @@ paths:
               schema:
                 "$ref": "#/components/schemas/Error"
           description: "Invalid input."
+      security: []
       summary: "Register a new project and return its projectId."
       tags:
         - "Project"
@@ -577,6 +585,8 @@ paths:
       summary: "Get list of snapshots."
       tags:
         - "Snapshot"
+security:
+  - BearerAuth: []
 servers:
   - description: "HTTP REST API"
     url: "http://{host}:{port}"
