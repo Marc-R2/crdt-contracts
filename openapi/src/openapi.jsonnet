@@ -70,7 +70,7 @@ std.manifestYamlDoc(
 		BearerAuth: {
 			type: 'http',
 			scheme: 'bearer',
-			bearerFormat: 'JWT',
+			description: 'Opaque bearer token issued by the server (not a JWT).',
 		},
 	  },
     },
