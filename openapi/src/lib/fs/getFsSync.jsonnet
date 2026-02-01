@@ -3,9 +3,8 @@
     schemas: {
       GetFsSyncRequest: {
         type: 'object',
-        required: ['projectId', 'entries'],
+        required: ['entries'],
         properties: {
-          projectId: { "$ref": '#/components/schemas/ProjectId' },
           entries: {
             type: 'array',
             description: 'All file system entries present on the client.',
@@ -16,9 +15,8 @@
 
       GetFsSyncResponse: {
         type: 'object',
-        required: ['projectId', 'updates'],
+        required: ['updates'],
         properties: {
-          projectId: { "$ref": '#/components/schemas/ProjectId' },
           updates: {
             type: 'array',
             description: 'List of server-side fs entry updates compared to the client entries.',

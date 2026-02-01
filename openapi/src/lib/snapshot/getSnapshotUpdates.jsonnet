@@ -3,9 +3,8 @@
     schemas: {
       GetSnapshotUpdatesRequest: {
         type: 'object',
-        required: ['projectId', 'timestamp'],
+        required: ['timestamp'],
         properties: {
-          projectId: { "$ref": '#/components/schemas/ProjectId' },
           timestamp: { "$ref": '#/components/schemas/UnixTimestamp' },
           includeDeleted: {
             type: 'boolean',
@@ -16,9 +15,8 @@
 
       GetSnapshotUpdatesResponse: {
         type: 'object',
-        required: ['projectId', 'updates'],
+        required: ['updates'],
         properties: {
-          projectId: { "$ref": '#/components/schemas/ProjectId' },
           updates: {
             type: 'array',
             description: 'List of updated snapshots since the given timestamp.',

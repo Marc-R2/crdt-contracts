@@ -3,9 +3,8 @@
     schemas: {
       ListSnapshotsRequest: {
         type: 'object',
-        required: ['projectId'],
+        required: [],
         properties: {
-          projectId: { "$ref": '#/components/schemas/ProjectId' },
           includeDeleted: {
             type: 'boolean',
             description: 'If true, include deleted snapshots; defaults to false (active only).',
@@ -15,9 +14,8 @@
 
       ListSnapshotsResponse: {
         type: 'object',
-        required: ['projectId', 'snapshotInfos'],
+        required: ['snapshotInfos'],
         properties: {
-          projectId: { "$ref": '#/components/schemas/ProjectId' },
           snapshotInfos: {
             type: 'array',
             description: 'List of all active snapshots-infos within the project.',

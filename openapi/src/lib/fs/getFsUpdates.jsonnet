@@ -3,7 +3,7 @@
     schemas: {
       GetFsUpdatesRequest: {
         type: 'object',
-        required: ['projectId', 'timestamp'],
+        required: ['timestamp'],
         properties: {
           projectId: { "$ref": '#/components/schemas/ProjectId' },
           timestamp: { "$ref": '#/components/schemas/UnixTimestamp' },
@@ -12,9 +12,8 @@
 
       GetFsUpdatesResponse: {
         type: 'object',
-        required: ['projectId', 'updates'],
+        required: ['updates'],
         properties: {
-          projectId: { "$ref": '#/components/schemas/ProjectId' },
           updates: {
             type: 'array',
             description: 'List of file system updates since the given timestamp.',

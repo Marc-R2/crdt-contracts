@@ -3,18 +3,16 @@
     schemas: {
       GetSnapshotRequest: {
         type: 'object',
-        required: ['projectId', 'docId'],
+        required: ['docId'],
         properties: {
-          projectId: { "$ref": '#/components/schemas/ProjectId' },
           docId: { "$ref": '#/components/schemas/DocId' },
         },
       },
 
       GetSnapshotResponse: {
         type: 'object',
-        required: ['projectId', 'docId', 'snapshotData', 'stamp', 'hash', 'status'],
+        required: ['docId', 'snapshotData', 'stamp', 'hash', 'status'],
         properties: {
-          projectId: { "$ref": '#/components/schemas/ProjectId' },
           docId: { "$ref": '#/components/schemas/DocId' },
           snapshotData: { type: 'string', description: 'The data of the snapshot, encoded in base64.' },
           stamp: { "$ref": '#/components/schemas/UnixTimestamp' },

@@ -3,18 +3,16 @@
     schemas: {
       PutFsUpdateRequest: {
         type: 'object',
-        required: ['projectId', 'update'],
+        required: ['update'],
         properties: {
-          projectId: { "$ref": '#/components/schemas/ProjectId' },
           update: { "$ref": '#/components/schemas/FsEntry' },
         },
       },
       
       PutFsUpdateResponse: {
         type: 'object',
-        required: ['projectId', 'newest'],
+        required: ['newest'],
         properties: {
-          projectId: { "$ref": '#/components/schemas/ProjectId' },
           newest: { "$ref": '#/components/schemas/FsEntry' }
         },
       },

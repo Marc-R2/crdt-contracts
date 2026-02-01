@@ -85,23 +85,17 @@ components:
           items:
             "$ref": "#/components/schemas/FsEntry"
           type: "array"
-        projectId:
-          "$ref": "#/components/schemas/ProjectId"
       required:
-        - "projectId"
         - "entries"
       type: "object"
     GetFsSyncResponse:
       properties:
-        projectId:
-          "$ref": "#/components/schemas/ProjectId"
         updates:
           description: "List of server-side fs entry updates compared to the client entries."
           items:
             "$ref": "#/components/schemas/FsEntry"
           type: "array"
       required:
-        - "projectId"
         - "updates"
       type: "object"
     GetFsUpdatesRequest:
@@ -111,30 +105,23 @@ components:
         timestamp:
           "$ref": "#/components/schemas/UnixTimestamp"
       required:
-        - "projectId"
         - "timestamp"
       type: "object"
     GetFsUpdatesResponse:
       properties:
-        projectId:
-          "$ref": "#/components/schemas/ProjectId"
         updates:
           description: "List of file system updates since the given timestamp."
           items:
             "$ref": "#/components/schemas/FsEntry"
           type: "array"
       required:
-        - "projectId"
         - "updates"
       type: "object"
     GetSnapshotRequest:
       properties:
         docId:
           "$ref": "#/components/schemas/DocId"
-        projectId:
-          "$ref": "#/components/schemas/ProjectId"
       required:
-        - "projectId"
         - "docId"
       type: "object"
     GetSnapshotResponse:
@@ -144,8 +131,6 @@ components:
         hash:
           description: "The hash of the snapshot data."
           type: "string"
-        projectId:
-          "$ref": "#/components/schemas/ProjectId"
         snapshotData:
           description: "The data of the snapshot, encoded in base64."
           type: "string"
@@ -155,7 +140,6 @@ components:
           description: "The status of the snapshot within the project. E.g., \"active\", \"archived\", \"deleted\"."
           type: "string"
       required:
-        - "projectId"
         - "docId"
         - "snapshotData"
         - "stamp"
@@ -167,25 +151,19 @@ components:
         includeDeleted:
           description: "If true, include deleted snapshots; defaults to false (active only)."
           type: "boolean"
-        projectId:
-          "$ref": "#/components/schemas/ProjectId"
         timestamp:
           "$ref": "#/components/schemas/UnixTimestamp"
       required:
-        - "projectId"
         - "timestamp"
       type: "object"
     GetSnapshotUpdatesResponse:
       properties:
-        projectId:
-          "$ref": "#/components/schemas/ProjectId"
         updates:
           description: "List of updated snapshots since the given timestamp."
           items:
             "$ref": "#/components/schemas/Snapshot"
           type: "array"
       required:
-        - "projectId"
         - "updates"
       type: "object"
     ListSnapshotsRequest:
@@ -193,22 +171,16 @@ components:
         includeDeleted:
           description: "If true, include deleted snapshots; defaults to false (active only)."
           type: "boolean"
-        projectId:
-          "$ref": "#/components/schemas/ProjectId"
-      required:
-        - "projectId"
+      required: []
       type: "object"
     ListSnapshotsResponse:
       properties:
-        projectId:
-          "$ref": "#/components/schemas/ProjectId"
         snapshotInfos:
           description: "List of all active snapshots-infos within the project."
           items:
             "$ref": "#/components/schemas/SnapshotInfo"
           type: "array"
       required:
-        - "projectId"
         - "snapshotInfos"
       type: "object"
     ProjectId:
@@ -217,22 +189,16 @@ components:
       type: "string"
     PutFsUpdateRequest:
       properties:
-        projectId:
-          "$ref": "#/components/schemas/ProjectId"
         update:
           "$ref": "#/components/schemas/FsEntry"
       required:
-        - "projectId"
         - "update"
       type: "object"
     PutFsUpdateResponse:
       properties:
         newest:
           "$ref": "#/components/schemas/FsEntry"
-        projectId:
-          "$ref": "#/components/schemas/ProjectId"
       required:
-        - "projectId"
         - "newest"
       type: "object"
     RegisterProjectRequest:
