@@ -18,10 +18,6 @@
           exists: {
             type: 'boolean',
             description: 'True if the blob exists on the server.'
-          },
-          newest: {
-            '$ref': '#/components/schemas/FsEntry',
-            description: 'The newest fs entry for the blob, if available.'
           }
         }
       }
@@ -32,7 +28,7 @@
       post: {
         tags: ['File System'],
         summary: 'Get blob info and check availability by hash.',
-        description: 'Checks if a blob exists on the server for the given hash (provided in the request body) and returns info about the newest fs entry. Use this endpoint before uploading a blob.',
+        description: 'Checks if a blob exists on the server for the given hash (provided in the request body). Use this endpoint before uploading a blob.',
         requestBody: {
           required: true,
           content: {
