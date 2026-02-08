@@ -4,6 +4,10 @@ local getFsSync = import 'fs/getFsSync.jsonnet';
 local getFsUpdates = import 'fs/getFsUpdates.jsonnet';
 local putFsUpdate = import 'fs/putFsUpdate.jsonnet';
 
+local getFsBlobInfo = import 'fs/getFsBlobInfo.jsonnet';
+local getFsBlob = import 'fs/getFsBlob.jsonnet';
+local putFsBlob = import 'fs/putFsBlob.jsonnet';
+
 local ProjectRegister = import 'project/register.jsonnet';
 local ProjectAuthChallenge = import 'project/authChallenge.jsonnet';
 local ProjectAuth = import 'project/auth.jsonnet';
@@ -46,7 +50,7 @@ std.manifestYamlDoc(
           Error: {
             type: 'object',
             properties: {
-              message: { type: 'string', description: 'Message describing the error.', example: 'A brief description of the error.' },
+              message: { type: 'string', description: 'Message describing the error.' },
               errorCode: { type: 'number', description: 'A 5-digit error code uniquely identifying this particular type of error.', example: 40149 },
             },
           },
@@ -58,24 +62,28 @@ std.manifestYamlDoc(
         + ProjectAuth.components.schemas
 
         + getFsSync.components.schemas
-		+ getFsUpdates.components.schemas
-		+ putFsUpdate.components.schemas
+        + getFsUpdates.components.schemas
+        + putFsUpdate.components.schemas
 
-		+ getSnapshot.components.schemas
-		+ getSnapshotUpdates.components.schemas
-		+ listSnapshots.components.schemas
+        + getFsBlobInfo.components.schemas
+        + getFsBlob.components.schemas
+        + putFsBlob.components.schemas
+
+        + getSnapshot.components.schemas
+        + getSnapshotUpdates.components.schemas
+        + listSnapshots.components.schemas
       ),
 
-	  securitySchemes: {
-		BearerAuth: {
-			type: 'http',
-			scheme: 'bearer',
-			description: 'Opaque bearer token issued by the server (not a JWT).',
-		},
-	  },
+      securitySchemes: {
+        BearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            description: 'Opaque bearer token issued by the server (not a JWT).',
+        },
+      },
     },
 
-	security: [ { BearerAuth: [] } ],
+    security: [ { BearerAuth: [] } ],
 
     paths: (
       {}
@@ -90,6 +98,9 @@ std.manifestYamlDoc(
       + getFsSync.paths
       + getFsUpdates.paths
       + putFsUpdate.paths
+      + getFsBlobInfo.paths
+      + getFsBlob.paths
+      + putFsBlob.paths
 
       # /snapshot/*
       + getSnapshot.paths
