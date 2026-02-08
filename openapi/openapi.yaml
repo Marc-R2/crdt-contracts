@@ -259,13 +259,7 @@ components:
                 type: "string"
         required:
             - "hash"
-        type: "object"
-    PutFsBlobResponse:
-        properties:
-            newest:
-                "$ref": "#/components/schemas/FsEntry"
-        required:
-            - "newest"
+            - "blob"
         type: "object"
     PutFsUpdateRequest:
       properties:
@@ -493,10 +487,6 @@ paths:
               required: true
           responses:
               "200":
-                  content:
-                      application/json:
-                          schema:
-                              "$ref": "#/components/schemas/PutFsBlobResponse"
                   description: "Blob stored successfully."
               "400":
                   content:
