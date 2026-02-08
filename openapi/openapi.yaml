@@ -110,10 +110,7 @@ components:
             blob:
                 description: "Base64-encoded file content."
                 type: "string"
-            newest:
-                "$ref": "#/components/schemas/FsEntry"
         required:
-            - "newest"
             - "blob"
       type: "object"
     GetFsSyncRequest:
@@ -369,7 +366,7 @@ paths:
         - "System"
   /fs/getBlob:
       post:
-          description: "Retrieves the newest fs entry and the blob (base64-encoded) for the given file hash. Does not upload or store blobs."
+          description: "Retrieves the blob (base64-encoded) for the given file hash."
           requestBody:
               content:
                   application/json:
@@ -395,7 +392,7 @@ paths:
                           schema:
                               "$ref": "#/components/schemas/Error"
                   description: "Blob not found for the given hash."
-          summary: "Get the newest fs entry and blob for a file hash."
+          summary: "Get the blob for a file hash."
           tags:
               - "File System"
   /fs/getBlobInfo:

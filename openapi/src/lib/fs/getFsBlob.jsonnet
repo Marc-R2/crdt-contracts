@@ -13,9 +13,8 @@
       },
       GetFsBlobResponse: {
         type: 'object',
-        required: ['newest', 'blob'],
+        required: ['blob'],
         properties: {
-          newest: { '$ref': '#/components/schemas/FsEntry' },
           blob: {
             type: 'string',
             description: 'Base64-encoded file content.'
@@ -28,8 +27,8 @@
     '/fs/getBlob': {
       post: {
         tags: ['File System'],
-        summary: 'Get the newest fs entry and blob for a file hash.',
-        description: 'Retrieves the newest fs entry and the blob (base64-encoded) for the given file hash. Does not upload or store blobs.',
+        summary: 'Get the blob for a file hash.',
+        description: 'Retrieves the blob (base64-encoded) for the given file hash.',
         requestBody: {
           required: true,
           content: {
