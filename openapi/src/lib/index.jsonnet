@@ -26,6 +26,26 @@
             "$ref": '#/components/schemas/UnixTimestamp',
             description: 'Server write timestamp for this entry. Used as a tie-breaker when stamps are equal.',
           },
+          isPresent: {
+			type: 'boolean',
+			description: 'Indicates if the file or snapshot is present on the server. If false, the file of snapshot is missing - needs to be uploaded by the client.',
+		  },
+        },
+      },
+
+      InfoResponse: {
+        type: 'object',
+        properties: {
+          ok: { type: 'string', description: "Literal 'OK'." },
+          service: { type: 'string', description: 'Service name.' },
+          versions: {
+            type: 'object',
+            properties: {
+              hocuspocus: { type: 'string', description: 'Hocuspocus server version.' },
+              yjs: { type: 'string', description: 'Yjs version.' },
+              'self': { type: 'string', description: 'Server version.' },
+            },
+          },
         },
       },
     },
@@ -40,25 +60,7 @@
         responses: {
           '200': {
             description: 'Server info returned successfully.',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    ok: { type: 'string', description: "Literal 'OK'." },
-                    service: { type: 'string', description: 'Service name.' },
-                    versions: {
-                      type: 'object',
-                      properties: {
-                        hocuspocus: { type: 'string', description: 'Hocuspocus server version.' },
-                        yjs: { type: 'string', description: 'Yjs version.' },
-                        'self': { type: 'string', description: 'Server version.' },
-                      },
-                    },
-                  },
-                },
-              },
-            },
+            content: { 'application/json': { schema: { "$ref": '#/components/schemas/InfoResponse' } } }
           },
         },
       },
