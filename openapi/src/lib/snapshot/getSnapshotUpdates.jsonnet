@@ -27,9 +27,9 @@
 
       Snapshot: {
         type: 'object',
-        required: ['docId', 'snapshotData', 'stamp', 'hash', 'status'],
+        required: ['globalId', 'snapshotData', 'stamp', 'hash', 'status'],
         properties: {
-          docId: { "$ref": '#/components/schemas/DocId' },
+          globalId: { "$ref": '#/components/schemas/GlobalId' },
           snapshotData: { type: 'string', description: 'The data of the snapshot, encoded in base64.' },
           stamp: { "$ref": '#/components/schemas/UnixTimestamp' },
           hash: { type: 'string', description: 'The hash of the snapshot data.' },

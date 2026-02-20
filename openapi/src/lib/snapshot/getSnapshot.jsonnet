@@ -3,17 +3,17 @@
     schemas: {
       GetSnapshotRequest: {
         type: 'object',
-        required: ['docId'],
+        required: ['globalId'],
         properties: {
-          docId: { "$ref": '#/components/schemas/DocId' },
+          globalId: { "$ref": '#/components/schemas/GlobalId' },
         },
       },
 
       GetSnapshotResponse: {
         type: 'object',
-        required: ['docId', 'snapshotData', 'stamp', 'hash', 'status'],
+        required: ['globalId', 'snapshotData', 'stamp', 'hash', 'status'],
         properties: {
-          docId: { "$ref": '#/components/schemas/DocId' },
+          globalId: { "$ref": '#/components/schemas/GlobalId' },
           snapshotData: { type: 'string', description: 'The data of the snapshot, encoded in base64.' },
           stamp: { "$ref": '#/components/schemas/UnixTimestamp' },
           hash: { type: 'string', description: 'The hash of the snapshot data.' },
@@ -28,7 +28,7 @@
       post: {
         tags: ['Snapshot'],
         summary: 'Get a snapshot.',
-        description: 'Get the newest snapshot for a docId in the project. Snapshots are mutable and updated incrementally by Hocuspocus.',
+        description: 'Get the newest snapshot for a globalId in the project. Snapshots are mutable and updated incrementally by Hocuspocus.',
         requestBody: {
           required: true,
           content: { 'application/json': { schema: { "$ref": '#/components/schemas/GetSnapshotRequest' } } },

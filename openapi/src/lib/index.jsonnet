@@ -3,12 +3,14 @@
     schemas: {
       // Define any shared schemas here if needed in the future
       ProjectId: { type: 'string', format: 'uuid', description: 'Project ID (UUID v4).' },
+      GlobalId: { type: 'string', format: 'uuid', description: 'Server-assigned globally unique identifier (UUID).' },
       DocId: { type: 'string', description: 'Document ID.' },
       UnixTimestamp: { type: 'integer', description: 'Unix timestamp in milliseconds.' },
       FsEntry: {
         type: 'object',
         required: ['docId', 'path', 'stamp', 'status'],
         properties: {
+          globalId: { "$ref": '#/components/schemas/GlobalId' },
           docId: { "$ref": '#/components/schemas/DocId' },
           path: {
             type: 'string',

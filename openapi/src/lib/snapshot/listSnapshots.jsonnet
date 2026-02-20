@@ -26,9 +26,9 @@
 
       SnapshotInfo: {
         type: 'object',
-        required: ['docId', 'hashPart'],
+        required: ['globalId', 'hashPart'],
         properties: {
-          docId: { "$ref": '#/components/schemas/DocId' },
+          globalId: { "$ref": '#/components/schemas/GlobalId' },
           hashPart: { type: 'string', description: 'The first 8 Bytes of the hash.' },
         },
       },
