@@ -78,6 +78,7 @@ components:
           "$ref": "#/components/schemas/UnixTimestamp"
           description: "Server write timestamp for this entry. Used as a tie-breaker when stamps are equal."
       required:
+          - "globalId"
         - "docId"
         - "path"
         - "stamp"

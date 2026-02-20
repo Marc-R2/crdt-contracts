@@ -8,7 +8,7 @@
       UnixTimestamp: { type: 'integer', description: 'Unix timestamp in milliseconds.' },
       FsEntry: {
         type: 'object',
-        required: ['docId', 'path', 'stamp', 'status'],
+        required: ['globalId', 'docId', 'path', 'stamp', 'status'],
         properties: {
           globalId: { "$ref": '#/components/schemas/GlobalId' },
           docId: { "$ref": '#/components/schemas/DocId' },
