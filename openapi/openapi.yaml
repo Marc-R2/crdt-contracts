@@ -1,48 +1,5 @@
 components:
   schemas:
-    AuthChallengeRequest:
-      properties:
-        projectId:
-          "$ref": "#/components/schemas/ProjectId"
-      required:
-        - "projectId"
-      type: "object"
-    AuthChallengeResponse:
-      properties:
-        challenge:
-          description: "(encypted) The authentication challenge to be solved to authenticate the project."
-          type: "string"
-        challengeId:
-          description: "(encypted) Identifier for the authentication challenge."
-          type: "string"
-      required:
-        - "challengeId"
-        - "challenge"
-      type: "object"
-    AuthProjectRequest:
-      properties:
-        challengeId:
-          description: "Identifier for the authentication challenge."
-          type: "string"
-        challengeResponse:
-          description: "Response to the authentication challenge."
-          type: "string"
-      required:
-        - "challengeId"
-        - "challengeResponse"
-      type: "object"
-    AuthProjectResponse:
-      properties:
-        token:
-          description: "(encypted) Authentication token for the project."
-          type: "string"
-        ttl:
-          description: "Time-to-live (in milliseconds) for the authentication token."
-          type: "number"
-      required:
-        - "token"
-        - "ttl"
-      type: "object"
     DocId:
       description: "Document ID."
       type: "string"
@@ -61,10 +18,10 @@ components:
         docId:
           "$ref": "#/components/schemas/DocId"
         globalId:
-            "$ref": "#/components/schemas/GlobalId"
+          "$ref": "#/components/schemas/GlobalId"
         isPresent:
-            description: "Indicates if the file or snapshot is present on the server. If false, the file of snapshot is missing - needs to be uploaded by the client."
-            type: "boolean"
+          description: "Indicates if the file or snapshot is present on the server. If false, the file of snapshot is missing - needs to be uploaded by the client."
+          type: "boolean"
         path:
           description: "Path of the fs entry relative to the project root. Use forward slashes, no leading slash, case-sensitive."
           type: "string"
@@ -78,7 +35,7 @@ components:
           "$ref": "#/components/schemas/UnixTimestamp"
           description: "Server write timestamp for this entry. Used as a tie-breaker when stamps are equal."
       required:
-          - "globalId"
+        - "globalId"
         - "docId"
         - "path"
         - "stamp"
@@ -86,15 +43,15 @@ components:
       type: "object"
     GetSnapshotRequest:
       properties:
-          globalId:
-              "$ref": "#/components/schemas/GlobalId"
+        globalId:
+          "$ref": "#/components/schemas/GlobalId"
       required:
-          - "globalId"
+        - "globalId"
       type: "object"
     GetSnapshotResponse:
       properties:
-          globalId:
-              "$ref": "#/components/schemas/GlobalId"
+        globalId:
+          "$ref": "#/components/schemas/GlobalId"
         hash:
           description: "The hash of the snapshot data."
           type: "string"
@@ -107,7 +64,7 @@ components:
           description: "The status of the snapshot within the project. E.g., \"active\", \"archived\", \"deleted\"."
           type: "string"
       required:
-          - "globalId"
+        - "globalId"
         - "snapshotData"
         - "stamp"
         - "hash"
@@ -134,30 +91,30 @@ components:
         - "updates"
       type: "object"
     GlobalId:
-        description: "Server-assigned globally unique identifier (UUID)."
-        format: "uuid"
-        type: "string"
+      description: "Server-assigned globally unique identifier (UUID)."
+      format: "uuid"
+      type: "string"
     InfoResponse:
-        properties:
-            ok:
-                description: "Literal 'OK'."
-                type: "string"
-            service:
-                description: "Service name."
-                type: "string"
-            versions:
-                properties:
-                    hocuspocus:
-                        description: "Hocuspocus server version."
-                        type: "string"
-                    self:
-                        description: "Server version."
-                        type: "string"
-                    yjs:
-                        description: "Yjs version."
-                        type: "string"
-                type: "object"
-        type: "object"
+      properties:
+        ok:
+          description: "Literal 'OK'."
+          type: "string"
+        service:
+          description: "Service name."
+          type: "string"
+        versions:
+          properties:
+            hocuspocus:
+              description: "Hocuspocus server version."
+              type: "string"
+            self:
+              description: "Server version."
+              type: "string"
+            yjs:
+              description: "Yjs version."
+              type: "string"
+          type: "object"
+      type: "object"
     ListSnapshotsRequest:
       properties:
         includeDeleted:
@@ -179,29 +136,10 @@ components:
       description: "Project ID (UUID v4)."
       format: "uuid"
       type: "string"
-    RegisterProjectRequest:
-      properties:
-        projectName:
-          description: "Human-readable name of the project."
-          type: "string"
-        publicKey:
-          description: "Project public key used by clients."
-          type: "string"
-      required:
-        - "projectName"
-        - "publicKey"
-      type: "object"
-    RegisterProjectResponse:
-      properties:
-        projectId:
-          "$ref": "#/components/schemas/ProjectId"
-      required:
-        - "projectId"
-      type: "object"
     Snapshot:
       properties:
-          globalId:
-              "$ref": "#/components/schemas/GlobalId"
+        globalId:
+          "$ref": "#/components/schemas/GlobalId"
         hash:
           description: "The hash of the snapshot data."
           type: "string"
@@ -214,7 +152,7 @@ components:
           description: "The status of the snapshot within the project. E.g., \"active\", \"archived\", \"deleted\"."
           type: "string"
       required:
-          - "globalId"
+        - "globalId"
         - "snapshotData"
         - "stamp"
         - "hash"
@@ -222,13 +160,13 @@ components:
       type: "object"
     SnapshotInfo:
       properties:
-          globalId:
-              "$ref": "#/components/schemas/GlobalId"
+        globalId:
+          "$ref": "#/components/schemas/GlobalId"
         hashPart:
           description: "The first 8 Bytes of the hash."
           type: "string"
       required:
-          - "globalId"
+        - "globalId"
         - "hashPart"
       type: "object"
     UnixTimestamp:
@@ -244,8 +182,8 @@ info:
     REST API for the Obsidian CRDT Sync Server.
     
     This server enables real-time collaboration using Yjs as a CRDT. Documents are synchronized over WebSocket and persisted with SQLite.
-      The REST API provides endpoints for project management, snapshot access, and blob transfer.
-      Blob upload/download uses raw binary streaming on /blobs/* endpoints (not part of this generated API — see blobRouteHandler.ts).
+    The REST API provides endpoints for project management, snapshot access, and blob transfer.
+    Blob upload/download uses raw binary streaming on /blobs/* endpoints (not part of this generated API — see blobRouteHandler.ts).
     
     **Features:**
     - WebSocket-based real-time synchronization
@@ -253,7 +191,7 @@ info:
     - Awareness support (cursor, users, selection)
     - Yjs CRDT for conflict-free collaboration
     - Register and manage projects
-      - Raw binary blob sync with hash verification and chunked upload
+    - Raw binary blob sync with hash verification and chunked upload
     
     The WebSocket server runs on port 1234 by default.
   title: "Obsidian CRDT Sync Server API"
@@ -268,7 +206,7 @@ paths:
           content:
             application/json:
               schema:
-                  "$ref": "#/components/schemas/InfoResponse"
+                "$ref": "#/components/schemas/InfoResponse"
           description: "Server info returned successfully."
       summary: "Return basic server information."
       tags:
@@ -281,87 +219,9 @@ paths:
       summary: "Return the OpenAPI YAML document for this API."
       tags:
         - "System"
-  /project/auth:
-    post:
-      description: "Authenticate a project by providing the response to the previously obtained authentication challenge."
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/AuthProjectRequest"
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/AuthProjectResponse"
-          description: "Project registered successfully."
-        "400":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
-          description: "Invalid input."
-      security: []
-      summary: "Authenticate a project using the challenge response."
-      tags:
-        - "Authentication"
-  /project/authChallenge:
-    post:
-      description: "To authenticate for a project, request an authentication challenge using the projectId."
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/AuthChallengeRequest"
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/AuthChallengeResponse"
-          description: "Authentication challenge provided."
-        "400":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
-          description: "Invalid input."
-      security: []
-      summary: "Request an authentication challenge."
-      tags:
-        - "Authentication"
-  /project/register:
-    post:
-      description: "Registers a new project with the given projectName and publicKey and returns the projectId."
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/RegisterProjectRequest"
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/RegisterProjectResponse"
-          description: "Project registered successfully."
-        "400":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
-          description: "Invalid input."
-      security: []
-      summary: "Register a new project and return its projectId."
-      tags:
-        - "Project"
   /snapshot/get:
     post:
-        description: "Get the newest snapshot for a globalId in the project. Snapshots are mutable and updated incrementally by Hocuspocus."
+      description: "Get the newest snapshot for a globalId in the project. Snapshots are mutable and updated incrementally by Hocuspocus."
       requestBody:
         content:
           application/json:

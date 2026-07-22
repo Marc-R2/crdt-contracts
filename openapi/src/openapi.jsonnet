@@ -5,10 +5,6 @@ local Index = import 'index.jsonnet';
 # Yjs Hocuspocus; blob sync is via the new /blobs/* streaming endpoints
 # (handled by blobRouteHandler.ts, not the generated API module).
 
-local ProjectRegister = import 'project/register.jsonnet';
-local ProjectAuthChallenge = import 'project/authChallenge.jsonnet';
-local ProjectAuth = import 'project/auth.jsonnet';
-
 local getSnapshot = import 'snapshot/getSnapshot.jsonnet';
 local getSnapshotUpdates = import 'snapshot/getSnapshotUpdates.jsonnet';
 local listSnapshots = import 'snapshot/listSnapshots.jsonnet';
@@ -54,10 +50,6 @@ std.manifestYamlDoc(
         }
         + Index.components.schemas
 
-        + ProjectRegister.components.schemas
-        + ProjectAuthChallenge.components.schemas
-        + ProjectAuth.components.schemas
-
         + getSnapshot.components.schemas
         + getSnapshotUpdates.components.schemas
         + listSnapshots.components.schemas
@@ -77,11 +69,6 @@ std.manifestYamlDoc(
     paths: (
       {}
       + Index.paths
-
-      # /project/*
-      + ProjectRegister.paths
-      + ProjectAuthChallenge.paths
-      + ProjectAuth.paths
 
       # /snapshot/*
       + getSnapshot.paths
