@@ -84,77 +84,6 @@ components:
         - "stamp"
         - "status"
       type: "object"
-    GetFsBlobInfoRequest:
-        properties:
-            hash:
-                description: "Hash of the file content to check."
-                type: "string"
-        required:
-            - "hash"
-        type: "object"
-    GetFsBlobInfoResponse:
-        properties:
-            exists:
-                description: "True if the blob exists on the server."
-                type: "boolean"
-        required:
-            - "exists"
-        type: "object"
-    GetFsBlobRequest:
-        properties:
-            hash:
-                description: "Hash of the file content to retrieve."
-                type: "string"
-        required:
-            - "hash"
-        type: "object"
-    GetFsBlobResponse:
-        properties:
-            blob:
-                description: "Base64-encoded file content."
-                type: "string"
-        required:
-            - "blob"
-      type: "object"
-    GetFsSyncRequest:
-      properties:
-        entries:
-          description: "All file system entries present on the client."
-          items:
-            "$ref": "#/components/schemas/FsEntry"
-          type: "array"
-      required:
-        - "entries"
-      type: "object"
-    GetFsSyncResponse:
-      properties:
-        updates:
-          description: "List of server-side fs entry updates compared to the client entries."
-          items:
-            "$ref": "#/components/schemas/FsEntry"
-          type: "array"
-      required:
-        - "updates"
-      type: "object"
-    GetFsUpdatesRequest:
-      properties:
-        projectId:
-          "$ref": "#/components/schemas/ProjectId"
-        timestamp:
-          "$ref": "#/components/schemas/UnixTimestamp"
-      required:
-        - "timestamp"
-      type: "object"
-    GetFsUpdatesResponse:
-      properties:
-        updates:
-          description: "List of file system updates since the given timestamp."
-          items:
-            "$ref": "#/components/schemas/FsEntry"
-          type: "array"
-      required:
-        - "updates"
-      type: "object"
     GetSnapshotRequest:
       properties:
           globalId:
@@ -250,32 +179,6 @@ components:
       description: "Project ID (UUID v4)."
       format: "uuid"
       type: "string"
-    PutFsBlobRequest:
-        properties:
-            blob:
-                description: "Base64-encoded file content for this update. Optional if the server already has the blob from a previous update with the same hash."
-                type: "string"
-            hash:
-                description: "Hash of the file content for this update."
-                type: "string"
-        required:
-            - "hash"
-            - "blob"
-        type: "object"
-    PutFsUpdateRequest:
-      properties:
-        update:
-          "$ref": "#/components/schemas/FsEntry"
-      required:
-        - "update"
-      type: "object"
-    PutFsUpdateResponse:
-      properties:
-        newest:
-          "$ref": "#/components/schemas/FsEntry"
-      required:
-        - "newest"
-      type: "object"
     RegisterProjectRequest:
       properties:
         projectName:
@@ -341,8 +244,8 @@ info:
     REST API for the Obsidian CRDT Sync Server.
     
     This server enables real-time collaboration using Yjs as a CRDT. Documents are synchronized over WebSocket and persisted with SQLite.
-    The REST API provides endpoints for project management, file system synchronization, and snapshot access.
-    Planned support includes larger files using chunking and binary data transfer.
+      The REST API provides endpoints for project management, snapshot access, and blob transfer.
+      Blob upload/download uses raw binary streaming on /blobs/* endpoints (not part of this generated API — see blobRouteHandler.ts).
     
     **Features:**
     - WebSocket-based real-time synchronization
@@ -350,8 +253,7 @@ info:
     - Awareness support (cursor, users, selection)
     - Yjs CRDT for conflict-free collaboration
     - Register and manage projects
-    - Update and retrieve file system entries
-    - Startup synchronization of projects
+      - Raw binary blob sync with hash verification and chunked upload
     
     The WebSocket server runs on port 1234 by default.
   title: "Obsidian CRDT Sync Server API"
@@ -371,164 +273,6 @@ paths:
       summary: "Return basic server information."
       tags:
         - "System"
-  /fs/getBlob:
-      post:
-          description: "Retrieves the blob (base64-encoded) for the given file hash."
-          requestBody:
-              content:
-                  application/json:
-                      schema:
-                          "$ref": "#/components/schemas/GetFsBlobRequest"
-              required: true
-          responses:
-              "200":
-                  content:
-                      application/json:
-                          schema:
-                              "$ref": "#/components/schemas/GetFsBlobResponse"
-                  description: "Newest fs entry and blob retrieved successfully."
-              "400":
-                  content:
-                      application/json:
-                          schema:
-                              "$ref": "#/components/schemas/Error"
-                  description: "Invalid input."
-              "404":
-                  content:
-                      application/json:
-                          schema:
-                              "$ref": "#/components/schemas/Error"
-                  description: "Blob not found for the given hash."
-          summary: "Get the blob for a file hash."
-          tags:
-              - "File System"
-  /fs/getBlobInfo:
-      post:
-          description: "Checks if a blob exists on the server for the given hash (provided in the request body). Use this endpoint before uploading a blob."
-          requestBody:
-              content:
-                  application/json:
-                      schema:
-                          "$ref": "#/components/schemas/GetFsBlobInfoRequest"
-              required: true
-          responses:
-              "200":
-                  content:
-                      application/json:
-                          schema:
-                              "$ref": "#/components/schemas/GetFsBlobInfoResponse"
-                  description: "Blob info retrieved successfully."
-              "400":
-                  content:
-                      application/json:
-                          schema:
-                              "$ref": "#/components/schemas/Error"
-                  description: "Invalid input."
-          summary: "Get blob info and check availability by hash."
-          tags:
-              - "File System"
-  /fs/getSync:
-    post:
-      description: "Compares client entries against the server state and returns the fs-entry updates needed to sync. LWW uses client stamp with server validation; ties are resolved by server write time."
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/GetFsSyncRequest"
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/GetFsSyncResponse"
-          description: "Sync updates returned successfully."
-        "400":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
-          description: "Invalid input."
-      summary: "Get file system sync updates."
-      tags:
-        - "File System"
-  /fs/getUpdates:
-    post:
-      description: "Returns all file system updates after a specific timestamp within a project. Uses LWW by client stamp with server validation."
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/GetFsUpdatesRequest"
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/GetFsUpdatesResponse"
-          description: "File system updates returned successfully."
-        "400":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
-          description: "Invalid input."
-      summary: "Get file system updates."
-      tags:
-        - "File System"
-  /fs/putBlob:
-      put:
-          description: "Stores a file blob on the server and returns the newest fs entry for the corresponding hash. Rejects if the hash is invalid or if the blob already exists."
-          requestBody:
-              content:
-                  application/json:
-                      schema:
-                          "$ref": "#/components/schemas/PutFsBlobRequest"
-              required: true
-          responses:
-              "200":
-                  description: "Blob stored successfully."
-              "400":
-                  content:
-                      application/json:
-                          schema:
-                              "$ref": "#/components/schemas/Error"
-                  description: "Invalid input."
-              "409":
-                  content:
-                      application/json:
-                          schema:
-                              "$ref": "#/components/schemas/Error"
-                  description: "Conflict - blob already exists with the same hash."
-          summary: "Store a file blob and get the newest fs entry."
-          tags:
-              - "File System"
-  /fs/putUpdate:
-    put:
-      description: "Stores a single fs entry update for a project and returns the newest entry for that document. Client stamp is validated; LWW uses stamp and server write time to break ties."
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/PutFsUpdateRequest"
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/PutFsUpdateResponse"
-          description: "Update stored successfully."
-        "400":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
-          description: "Invalid input."
-      summary: "Submit a file system update."
-      tags:
-        - "File System"
   /openapi.yaml:
     get:
       responses:
