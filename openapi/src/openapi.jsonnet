@@ -1,16 +1,9 @@
 local Index = import 'index.jsonnet';
 
-local getFsSync = import 'fs/getFsSync.jsonnet';
-local getFsUpdates = import 'fs/getFsUpdates.jsonnet';
-local putFsUpdate = import 'fs/putFsUpdate.jsonnet';
-
-local getFsBlobInfo = import 'fs/getFsBlobInfo.jsonnet';
-local getFsBlob = import 'fs/getFsBlob.jsonnet';
-local putFsBlob = import 'fs/putFsBlob.jsonnet';
-
-local ProjectRegister = import 'project/register.jsonnet';
-local ProjectAuthChallenge = import 'project/authChallenge.jsonnet';
-local ProjectAuth = import 'project/auth.jsonnet';
+# The old /fs/* endpoints (getSync, getUpdates, putUpdate, getBlob,
+# getBlobInfo, putBlob) have been removed. Structure sync is now via
+# Yjs Hocuspocus; blob sync is via the new /blobs/* streaming endpoints
+# (handled by blobRouteHandler.ts, not the generated API module).
 
 local getSnapshot = import 'snapshot/getSnapshot.jsonnet';
 local getSnapshotUpdates = import 'snapshot/getSnapshotUpdates.jsonnet';
@@ -21,7 +14,7 @@ std.manifestYamlDoc(
     openapi: '3.0.2',
     info: {
       title: 'Obsidian CRDT Sync Server API',
-      description: "REST API for the Obsidian CRDT Sync Server.\n\nThis server enables real-time collaboration using Yjs as a CRDT. Documents are synchronized over WebSocket and persisted with SQLite.\nThe REST API provides endpoints for project management, file system synchronization, and snapshot access.\nPlanned support includes larger files using chunking and binary data transfer.\n\n**Features:**\n- WebSocket-based real-time synchronization\n- SQLite persistence with Hocuspocus\n- Awareness support (cursor, users, selection)\n- Yjs CRDT for conflict-free collaboration\n- Register and manage projects\n- Update and retrieve file system entries\n- Startup synchronization of projects\n\nThe WebSocket server runs on port 1234 by default.\n",
+      description: "REST API for the Obsidian CRDT Sync Server.\n\nThis server enables real-time collaboration using Yjs as a CRDT. Documents are synchronized over WebSocket and persisted with SQLite.\nThe REST API provides endpoints for project management, snapshot access, and blob transfer.\nBlob upload/download uses raw binary streaming on /blobs/* endpoints (not part of this generated API — see blobRouteHandler.ts).\n\n**Features:**\n- WebSocket-based real-time synchronization\n- SQLite persistence with Hocuspocus\n- Awareness support (cursor, users, selection)\n- Yjs CRDT for conflict-free collaboration\n- Register and manage projects\n- Raw binary blob sync with hash verification and chunked upload\n\nThe WebSocket server runs on port 1234 by default.\n",
       version: '0.0.1',
     },
 
@@ -57,18 +50,6 @@ std.manifestYamlDoc(
         }
         + Index.components.schemas
 
-        + ProjectRegister.components.schemas
-        + ProjectAuthChallenge.components.schemas
-        + ProjectAuth.components.schemas
-
-        + getFsSync.components.schemas
-        + getFsUpdates.components.schemas
-        + putFsUpdate.components.schemas
-
-        + getFsBlobInfo.components.schemas
-        + getFsBlob.components.schemas
-        + putFsBlob.components.schemas
-
         + getSnapshot.components.schemas
         + getSnapshotUpdates.components.schemas
         + listSnapshots.components.schemas
@@ -89,23 +70,14 @@ std.manifestYamlDoc(
       {}
       + Index.paths
 
-      # /register/*
-      + ProjectRegister.paths
-      + ProjectAuthChallenge.paths
-      + ProjectAuth.paths
-
-      # /fs/*
-      + getFsSync.paths
-      + getFsUpdates.paths
-      + putFsUpdate.paths
-      + getFsBlobInfo.paths
-      + getFsBlob.paths
-      + putFsBlob.paths
-
       # /snapshot/*
       + getSnapshot.paths
       + getSnapshotUpdates.paths
       + listSnapshots.paths
+
+      # /blobs/* endpoints are NOT defined here — they use raw binary
+      # streaming (application/octet-stream) and are handled by
+      # blobRouteHandler.ts, not the generated NestJS controllers.
     ),
   },
   quote_keys=false,

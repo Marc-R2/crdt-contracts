@@ -1,48 +1,5 @@
 components:
   schemas:
-    AuthChallengeRequest:
-      properties:
-        projectId:
-          "$ref": "#/components/schemas/ProjectId"
-      required:
-        - "projectId"
-      type: "object"
-    AuthChallengeResponse:
-      properties:
-        challenge:
-          description: "(encypted) The authentication challenge to be solved to authenticate the project."
-          type: "string"
-        challengeId:
-          description: "(encypted) Identifier for the authentication challenge."
-          type: "string"
-      required:
-        - "challengeId"
-        - "challenge"
-      type: "object"
-    AuthProjectRequest:
-      properties:
-        challengeId:
-          description: "Identifier for the authentication challenge."
-          type: "string"
-        challengeResponse:
-          description: "Response to the authentication challenge."
-          type: "string"
-      required:
-        - "challengeId"
-        - "challengeResponse"
-      type: "object"
-    AuthProjectResponse:
-      properties:
-        token:
-          description: "(encypted) Authentication token for the project."
-          type: "string"
-        ttl:
-          description: "Time-to-live (in milliseconds) for the authentication token."
-          type: "number"
-      required:
-        - "token"
-        - "ttl"
-      type: "object"
     DocId:
       description: "Document ID."
       type: "string"
@@ -61,10 +18,10 @@ components:
         docId:
           "$ref": "#/components/schemas/DocId"
         globalId:
-            "$ref": "#/components/schemas/GlobalId"
+          "$ref": "#/components/schemas/GlobalId"
         isPresent:
-            description: "Indicates if the file or snapshot is present on the server. If false, the file of snapshot is missing - needs to be uploaded by the client."
-            type: "boolean"
+          description: "Indicates if the file or snapshot is present on the server. If false, the file of snapshot is missing - needs to be uploaded by the client."
+          type: "boolean"
         path:
           description: "Path of the fs entry relative to the project root. Use forward slashes, no leading slash, case-sensitive."
           type: "string"
@@ -78,94 +35,23 @@ components:
           "$ref": "#/components/schemas/UnixTimestamp"
           description: "Server write timestamp for this entry. Used as a tie-breaker when stamps are equal."
       required:
-          - "globalId"
+        - "globalId"
         - "docId"
         - "path"
         - "stamp"
         - "status"
       type: "object"
-    GetFsBlobInfoRequest:
-        properties:
-            hash:
-                description: "Hash of the file content to check."
-                type: "string"
-        required:
-            - "hash"
-        type: "object"
-    GetFsBlobInfoResponse:
-        properties:
-            exists:
-                description: "True if the blob exists on the server."
-                type: "boolean"
-        required:
-            - "exists"
-        type: "object"
-    GetFsBlobRequest:
-        properties:
-            hash:
-                description: "Hash of the file content to retrieve."
-                type: "string"
-        required:
-            - "hash"
-        type: "object"
-    GetFsBlobResponse:
-        properties:
-            blob:
-                description: "Base64-encoded file content."
-                type: "string"
-        required:
-            - "blob"
-      type: "object"
-    GetFsSyncRequest:
-      properties:
-        entries:
-          description: "All file system entries present on the client."
-          items:
-            "$ref": "#/components/schemas/FsEntry"
-          type: "array"
-      required:
-        - "entries"
-      type: "object"
-    GetFsSyncResponse:
-      properties:
-        updates:
-          description: "List of server-side fs entry updates compared to the client entries."
-          items:
-            "$ref": "#/components/schemas/FsEntry"
-          type: "array"
-      required:
-        - "updates"
-      type: "object"
-    GetFsUpdatesRequest:
-      properties:
-        projectId:
-          "$ref": "#/components/schemas/ProjectId"
-        timestamp:
-          "$ref": "#/components/schemas/UnixTimestamp"
-      required:
-        - "timestamp"
-      type: "object"
-    GetFsUpdatesResponse:
-      properties:
-        updates:
-          description: "List of file system updates since the given timestamp."
-          items:
-            "$ref": "#/components/schemas/FsEntry"
-          type: "array"
-      required:
-        - "updates"
-      type: "object"
     GetSnapshotRequest:
       properties:
-          globalId:
-              "$ref": "#/components/schemas/GlobalId"
+        globalId:
+          "$ref": "#/components/schemas/GlobalId"
       required:
-          - "globalId"
+        - "globalId"
       type: "object"
     GetSnapshotResponse:
       properties:
-          globalId:
-              "$ref": "#/components/schemas/GlobalId"
+        globalId:
+          "$ref": "#/components/schemas/GlobalId"
         hash:
           description: "The hash of the snapshot data."
           type: "string"
@@ -178,7 +64,7 @@ components:
           description: "The status of the snapshot within the project. E.g., \"active\", \"archived\", \"deleted\"."
           type: "string"
       required:
-          - "globalId"
+        - "globalId"
         - "snapshotData"
         - "stamp"
         - "hash"
@@ -205,30 +91,30 @@ components:
         - "updates"
       type: "object"
     GlobalId:
-        description: "Server-assigned globally unique identifier (UUID)."
-        format: "uuid"
-        type: "string"
+      description: "Server-assigned globally unique identifier (UUID)."
+      format: "uuid"
+      type: "string"
     InfoResponse:
-        properties:
-            ok:
-                description: "Literal 'OK'."
-                type: "string"
-            service:
-                description: "Service name."
-                type: "string"
-            versions:
-                properties:
-                    hocuspocus:
-                        description: "Hocuspocus server version."
-                        type: "string"
-                    self:
-                        description: "Server version."
-                        type: "string"
-                    yjs:
-                        description: "Yjs version."
-                        type: "string"
-                type: "object"
-        type: "object"
+      properties:
+        ok:
+          description: "Literal 'OK'."
+          type: "string"
+        service:
+          description: "Service name."
+          type: "string"
+        versions:
+          properties:
+            hocuspocus:
+              description: "Hocuspocus server version."
+              type: "string"
+            self:
+              description: "Server version."
+              type: "string"
+            yjs:
+              description: "Yjs version."
+              type: "string"
+          type: "object"
+      type: "object"
     ListSnapshotsRequest:
       properties:
         includeDeleted:
@@ -250,55 +136,10 @@ components:
       description: "Project ID (UUID v4)."
       format: "uuid"
       type: "string"
-    PutFsBlobRequest:
-        properties:
-            blob:
-                description: "Base64-encoded file content for this update. Optional if the server already has the blob from a previous update with the same hash."
-                type: "string"
-            hash:
-                description: "Hash of the file content for this update."
-                type: "string"
-        required:
-            - "hash"
-            - "blob"
-        type: "object"
-    PutFsUpdateRequest:
-      properties:
-        update:
-          "$ref": "#/components/schemas/FsEntry"
-      required:
-        - "update"
-      type: "object"
-    PutFsUpdateResponse:
-      properties:
-        newest:
-          "$ref": "#/components/schemas/FsEntry"
-      required:
-        - "newest"
-      type: "object"
-    RegisterProjectRequest:
-      properties:
-        projectName:
-          description: "Human-readable name of the project."
-          type: "string"
-        publicKey:
-          description: "Project public key used by clients."
-          type: "string"
-      required:
-        - "projectName"
-        - "publicKey"
-      type: "object"
-    RegisterProjectResponse:
-      properties:
-        projectId:
-          "$ref": "#/components/schemas/ProjectId"
-      required:
-        - "projectId"
-      type: "object"
     Snapshot:
       properties:
-          globalId:
-              "$ref": "#/components/schemas/GlobalId"
+        globalId:
+          "$ref": "#/components/schemas/GlobalId"
         hash:
           description: "The hash of the snapshot data."
           type: "string"
@@ -311,7 +152,7 @@ components:
           description: "The status of the snapshot within the project. E.g., \"active\", \"archived\", \"deleted\"."
           type: "string"
       required:
-          - "globalId"
+        - "globalId"
         - "snapshotData"
         - "stamp"
         - "hash"
@@ -319,13 +160,13 @@ components:
       type: "object"
     SnapshotInfo:
       properties:
-          globalId:
-              "$ref": "#/components/schemas/GlobalId"
+        globalId:
+          "$ref": "#/components/schemas/GlobalId"
         hashPart:
           description: "The first 8 Bytes of the hash."
           type: "string"
       required:
-          - "globalId"
+        - "globalId"
         - "hashPart"
       type: "object"
     UnixTimestamp:
@@ -341,8 +182,8 @@ info:
     REST API for the Obsidian CRDT Sync Server.
     
     This server enables real-time collaboration using Yjs as a CRDT. Documents are synchronized over WebSocket and persisted with SQLite.
-    The REST API provides endpoints for project management, file system synchronization, and snapshot access.
-    Planned support includes larger files using chunking and binary data transfer.
+    The REST API provides endpoints for project management, snapshot access, and blob transfer.
+    Blob upload/download uses raw binary streaming on /blobs/* endpoints (not part of this generated API — see blobRouteHandler.ts).
     
     **Features:**
     - WebSocket-based real-time synchronization
@@ -350,8 +191,7 @@ info:
     - Awareness support (cursor, users, selection)
     - Yjs CRDT for conflict-free collaboration
     - Register and manage projects
-    - Update and retrieve file system entries
-    - Startup synchronization of projects
+    - Raw binary blob sync with hash verification and chunked upload
     
     The WebSocket server runs on port 1234 by default.
   title: "Obsidian CRDT Sync Server API"
@@ -366,169 +206,11 @@ paths:
           content:
             application/json:
               schema:
-                  "$ref": "#/components/schemas/InfoResponse"
+                "$ref": "#/components/schemas/InfoResponse"
           description: "Server info returned successfully."
       summary: "Return basic server information."
       tags:
         - "System"
-  /fs/getBlob:
-      post:
-          description: "Retrieves the blob (base64-encoded) for the given file hash."
-          requestBody:
-              content:
-                  application/json:
-                      schema:
-                          "$ref": "#/components/schemas/GetFsBlobRequest"
-              required: true
-          responses:
-              "200":
-                  content:
-                      application/json:
-                          schema:
-                              "$ref": "#/components/schemas/GetFsBlobResponse"
-                  description: "Newest fs entry and blob retrieved successfully."
-              "400":
-                  content:
-                      application/json:
-                          schema:
-                              "$ref": "#/components/schemas/Error"
-                  description: "Invalid input."
-              "404":
-                  content:
-                      application/json:
-                          schema:
-                              "$ref": "#/components/schemas/Error"
-                  description: "Blob not found for the given hash."
-          summary: "Get the blob for a file hash."
-          tags:
-              - "File System"
-  /fs/getBlobInfo:
-      post:
-          description: "Checks if a blob exists on the server for the given hash (provided in the request body). Use this endpoint before uploading a blob."
-          requestBody:
-              content:
-                  application/json:
-                      schema:
-                          "$ref": "#/components/schemas/GetFsBlobInfoRequest"
-              required: true
-          responses:
-              "200":
-                  content:
-                      application/json:
-                          schema:
-                              "$ref": "#/components/schemas/GetFsBlobInfoResponse"
-                  description: "Blob info retrieved successfully."
-              "400":
-                  content:
-                      application/json:
-                          schema:
-                              "$ref": "#/components/schemas/Error"
-                  description: "Invalid input."
-          summary: "Get blob info and check availability by hash."
-          tags:
-              - "File System"
-  /fs/getSync:
-    post:
-      description: "Compares client entries against the server state and returns the fs-entry updates needed to sync. LWW uses client stamp with server validation; ties are resolved by server write time."
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/GetFsSyncRequest"
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/GetFsSyncResponse"
-          description: "Sync updates returned successfully."
-        "400":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
-          description: "Invalid input."
-      summary: "Get file system sync updates."
-      tags:
-        - "File System"
-  /fs/getUpdates:
-    post:
-      description: "Returns all file system updates after a specific timestamp within a project. Uses LWW by client stamp with server validation."
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/GetFsUpdatesRequest"
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/GetFsUpdatesResponse"
-          description: "File system updates returned successfully."
-        "400":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
-          description: "Invalid input."
-      summary: "Get file system updates."
-      tags:
-        - "File System"
-  /fs/putBlob:
-      put:
-          description: "Stores a file blob on the server and returns the newest fs entry for the corresponding hash. Rejects if the hash is invalid or if the blob already exists."
-          requestBody:
-              content:
-                  application/json:
-                      schema:
-                          "$ref": "#/components/schemas/PutFsBlobRequest"
-              required: true
-          responses:
-              "200":
-                  description: "Blob stored successfully."
-              "400":
-                  content:
-                      application/json:
-                          schema:
-                              "$ref": "#/components/schemas/Error"
-                  description: "Invalid input."
-              "409":
-                  content:
-                      application/json:
-                          schema:
-                              "$ref": "#/components/schemas/Error"
-                  description: "Conflict - blob already exists with the same hash."
-          summary: "Store a file blob and get the newest fs entry."
-          tags:
-              - "File System"
-  /fs/putUpdate:
-    put:
-      description: "Stores a single fs entry update for a project and returns the newest entry for that document. Client stamp is validated; LWW uses stamp and server write time to break ties."
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/PutFsUpdateRequest"
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/PutFsUpdateResponse"
-          description: "Update stored successfully."
-        "400":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
-          description: "Invalid input."
-      summary: "Submit a file system update."
-      tags:
-        - "File System"
   /openapi.yaml:
     get:
       responses:
@@ -537,87 +219,9 @@ paths:
       summary: "Return the OpenAPI YAML document for this API."
       tags:
         - "System"
-  /project/auth:
-    post:
-      description: "Authenticate a project by providing the response to the previously obtained authentication challenge."
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/AuthProjectRequest"
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/AuthProjectResponse"
-          description: "Project registered successfully."
-        "400":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
-          description: "Invalid input."
-      security: []
-      summary: "Authenticate a project using the challenge response."
-      tags:
-        - "Authentication"
-  /project/authChallenge:
-    post:
-      description: "To authenticate for a project, request an authentication challenge using the projectId."
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/AuthChallengeRequest"
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/AuthChallengeResponse"
-          description: "Authentication challenge provided."
-        "400":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
-          description: "Invalid input."
-      security: []
-      summary: "Request an authentication challenge."
-      tags:
-        - "Authentication"
-  /project/register:
-    post:
-      description: "Registers a new project with the given projectName and publicKey and returns the projectId."
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/RegisterProjectRequest"
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/RegisterProjectResponse"
-          description: "Project registered successfully."
-        "400":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
-          description: "Invalid input."
-      security: []
-      summary: "Register a new project and return its projectId."
-      tags:
-        - "Project"
   /snapshot/get:
     post:
-        description: "Get the newest snapshot for a globalId in the project. Snapshots are mutable and updated incrementally by Hocuspocus."
+      description: "Get the newest snapshot for a globalId in the project. Snapshots are mutable and updated incrementally by Hocuspocus."
       requestBody:
         content:
           application/json:
