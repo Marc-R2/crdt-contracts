@@ -3,6 +3,27 @@ components:
     DocId:
       description: "Document ID."
       type: "string"
+    DocStatusEntry:
+      properties:
+        bytes:
+          description: "Byte length of the stored Yjs update blob (computed via SQL LENGTH, never materialized)."
+          type: "integer"
+        updatedAt:
+          "$ref": "#/components/schemas/UnixTimestamp"
+          description: "Timestamp (ms) of the snapshot row (the stamp column)."
+      required:
+        - "bytes"
+      type: "object"
+    DocStatusResponse:
+      properties:
+        docs:
+          additionalProperties:
+            "$ref": "#/components/schemas/DocStatusEntry"
+          description: "Per-document status keyed by globalId."
+          type: "object"
+      required:
+        - "docs"
+      type: "object"
     Error:
       properties:
         errorCode:
@@ -219,6 +240,31 @@ paths:
       summary: "Return the OpenAPI YAML document for this API."
       tags:
         - "System"
+  /projects/doc-status:
+    get:
+      description: "Returns one entry per snapshot row of the project (globalId → byte length + row timestamp) so ANY client — including a lone client with no peers — can compare its per-CRDT state against the server (the exchange source for smart-sync). The project is taken from the X-Project-ID header (same authenticated-worker flow as the other project endpoints)."
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/DocStatusResponse"
+          description: "Per-document status returned successfully."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Missing or invalid bearer token / project ownership."
+        "404":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Unknown project."
+      summary: "Get per-document sync status for a project."
+      tags:
+        - "Projects"
   /snapshot/get:
     post:
       description: "Get the newest snapshot for a globalId in the project. Snapshots are mutable and updated incrementally by Hocuspocus."

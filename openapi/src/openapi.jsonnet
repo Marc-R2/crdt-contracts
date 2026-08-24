@@ -8,6 +8,7 @@ local Index = import 'index.jsonnet';
 local getSnapshot = import 'snapshot/getSnapshot.jsonnet';
 local getSnapshotUpdates = import 'snapshot/getSnapshotUpdates.jsonnet';
 local listSnapshots = import 'snapshot/listSnapshots.jsonnet';
+local docStatus = import 'snapshot/docStatus.jsonnet';
 
 std.manifestYamlDoc(
   {
@@ -53,6 +54,7 @@ std.manifestYamlDoc(
         + getSnapshot.components.schemas
         + getSnapshotUpdates.components.schemas
         + listSnapshots.components.schemas
+        + docStatus.components.schemas
       ),
 
       securitySchemes: {
@@ -74,6 +76,9 @@ std.manifestYamlDoc(
       + getSnapshot.paths
       + getSnapshotUpdates.paths
       + listSnapshots.paths
+
+      # /projects/doc-status (doc-status API)
+      + docStatus.paths
 
       # /blobs/* endpoints are NOT defined here — they use raw binary
       # streaming (application/octet-stream) and are handled by
