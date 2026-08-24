@@ -8,6 +8,9 @@ components:
         bytes:
           description: "Byte length of the stored Yjs update blob (computed via SQL LENGTH, never materialized)."
           type: "integer"
+        stateHash:
+          description: "SHA-256 (hex) of the canonical full-state snapshot bytes. Missing for legacy rows that predate the stateHash column."
+          type: "string"
         updatedAt:
           "$ref": "#/components/schemas/UnixTimestamp"
           description: "Timestamp (ms) of the snapshot row (the stamp column)."
@@ -21,8 +24,12 @@ components:
             "$ref": "#/components/schemas/DocStatusEntry"
           description: "Per-document status keyed by globalId."
           type: "object"
+        maxStamp:
+          description: "Max stamp across ALL snapshot rows (independent of the since filter), for client watermarking; 0 when the project has no snapshots."
+          type: "integer"
       required:
         - "docs"
+        - "maxStamp"
       type: "object"
     Error:
       properties:
@@ -242,7 +249,14 @@ paths:
         - "System"
   /projects/doc-status:
     get:
-      description: "Returns one entry per snapshot row of the project (globalId → byte length + row timestamp) so ANY client — including a lone client with no peers — can compare its per-CRDT state against the server (the exchange source for smart-sync). The project is taken from the X-Project-ID header (same authenticated-worker flow as the other project endpoints)."
+      description: "Returns one entry per snapshot row of the project (globalId → byte length + row timestamp + canonical state hash) so ANY client — including a lone client with no peers — can compare its per-CRDT state against the server (the exchange source for smart-sync). The project is taken from the X-Project-ID header (same authenticated-worker flow as the other project endpoints)."
+      parameters:
+        - description: "Exclusive lower bound (unix ms) on the snapshot stamp — only rows with stamp > since are returned (stamp == since is excluded)."
+          in: "query"
+          name: "since"
+          required: false
+          schema:
+            type: "integer"
       responses:
         "200":
           content:
