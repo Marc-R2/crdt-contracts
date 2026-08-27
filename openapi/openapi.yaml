@@ -232,6 +232,273 @@ info:
   version: "0.0.1"
 openapi: "3.0.2"
 paths:
+  /auth/device-tokens:
+    post:
+      description: "Mints a single-use paste/device token (5 min TTL). Only the SHA-256 hash is persisted; the plaintext code is returned exactly once. Authenticated via bearer token OR the httpOnly portal session cookie. The Obsidian plugin uses the returned code with POST /auth/exchange to obtain a full session."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                label:
+                  type: "string"
+                  description: "Optional human-readable label for the device token."
+        required: false
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "string"
+                    description: "One-time plaintext code (shown only here)."
+              description: "Token minted."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Missing or invalid session."
+      summary: "Mint a single-use device token."
+      tags:
+        - "Auth"
+  /auth/exchange:
+    post:
+      description: "Exchanges a paste/device code for a full session token. Validates existence, single-use and 5-minute TTL, marks the token used, and creates a session row carrying the device label. Rate-limited to 5 attempts per minute per IP (brute-force bound)."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "code"
+              properties:
+                code:
+                  type: "string"
+                deviceLabel:
+                  type: "string"
+                  description: "Label recorded on the created session (shown in the account sessions list)."
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  token:
+                    type: "string"
+                    description: "New session_ token."
+              description: "Session created."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Missing code / invalid JSON."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Invalid, used, or expired code."
+        "429":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Too many exchange attempts."
+      summary: "Exchange a device code for a session."
+      tags:
+        - "Auth"
+  /account:
+    get:
+      description: "Returns the authenticated user's profile. Auth: bearer token OR httpOnly portal session cookie."
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  id:
+                    type: "string"
+                  email:
+                    type: "string"
+                    nullable: true
+                  name:
+                    type: "string"
+                    nullable: true
+                  avatarUrl:
+                    type: "string"
+                    nullable: true
+                  googlePicture:
+                    type: "string"
+                    nullable: true
+              description: "Profile returned."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Missing or invalid session."
+      summary: "Get the authenticated user's profile."
+      tags:
+        - "Account"
+  /account/profile:
+    patch:
+      description: "Updates the authenticated user's display name / avatar URL. Both fields optional; name must be 1-100 chars, avatarUrl a valid http(s) URL (max 512 chars)."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                name:
+                  type: "string"
+                avatarUrl:
+                  type: "string"
+        required: false
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  id:
+                    type: "string"
+                  email:
+                    type: "string"
+                    nullable: true
+                  name:
+                    type: "string"
+                    nullable: true
+                  avatarUrl:
+                    type: "string"
+                    nullable: true
+                  googlePicture:
+                    type: "string"
+                    nullable: true
+              description: "Updated profile returned."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Validation failure."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Missing or invalid session."
+      summary: "Update the user's profile."
+      tags:
+        - "Account"
+  /account/sessions:
+    get:
+      description: "Lists the authenticated user's active sessions (revoked ones are excluded). The calling session is marked isCurrent=true. Own-session revocation is not allowed."
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  sessions:
+                    type: "array"
+                    items:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "string"
+                        deviceLabel:
+                          type: "string"
+                          nullable: true
+                        lastSeenAt:
+                          type: "integer"
+                          nullable: true
+                        createdAt:
+                          type: "integer"
+                          nullable: true
+                        isCurrent:
+                          type: "boolean"
+              description: "Session list returned."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Missing or invalid session."
+      summary: "List the user's active sessions."
+      tags:
+        - "Account"
+  /account/sessions/{id}:
+    delete:
+      description: "Revokes another active session of the authenticated user (never the current one). Revocation invalidates the session cache immediately."
+      parameters:
+        - in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "204":
+          description: "Session revoked."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Tried to revoke the current session."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Missing or invalid session."
+        "404":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Session not found / not owned by the user."
+      summary: "Revoke another session."
+      tags:
+        - "Account"
+  /account/projects:
+    get:
+      description: "Lists the authenticated user's project memberships."
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  projects:
+                    type: "array"
+                    items:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "string"
+                        name:
+                          type: "string"
+              description: "Project list returned."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Missing or invalid session."
+      summary: "List the user's projects."
+      tags:
+        - "Account"
   /:
     get:
       description: "Returns basic information about the CRDT Sync Server for health checks."
