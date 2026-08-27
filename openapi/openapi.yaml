@@ -135,8 +135,14 @@ components:
             hocuspocus:
               description: "Hocuspocus server version."
               type: "string"
+            protocol:
+              description: "Wire-protocol version (integer). Bump on any breaking room-name / entry-schema change."
+              type: "integer"
             self:
               description: "Server version."
+              type: "string"
+            server:
+              description: "Server package version."
               type: "string"
             yjs:
               description: "Yjs version."

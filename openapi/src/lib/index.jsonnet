@@ -46,6 +46,8 @@
               hocuspocus: { type: 'string', description: 'Hocuspocus server version.' },
               yjs: { type: 'string', description: 'Yjs version.' },
               'self': { type: 'string', description: 'Server version.' },
+              server: { type: 'string', description: 'Server package version.' },
+              protocol: { type: 'integer', description: 'Wire-protocol version (integer). Bump on any breaking room-name / entry-schema change.' },
             },
           },
         },
