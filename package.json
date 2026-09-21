@@ -1,0 +1,18 @@
+{
+	"name": "@marc-r2/crdt-contracts",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Implementation-free wire contracts (types + constants) shared by the Obsidian plugin and the sync server.",
+	"license": "0-BSD",
+	"type": "commonjs",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"files": [
+		"dist",
+		"src",
+		"compat-manifest.json"
+	],
+	"scripts": {
+		"build": "tsc -p tsconfig.json"
+	}
+}
