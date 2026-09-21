@@ -39,17 +39,18 @@ This repository consumes **no** sibling repository and has no submodules.
 | `src/index.ts` | The public surface (re-exports all of the above). |
 | `openapi/` | OpenAPI 3 source (`*.jsonnet`) and the generated `openapi.yaml` + Swagger UI assets. |
 | `compat-manifest.json` | `{ "contracts": "<version>", "protocolVersion": <n> }` — the consumer-facing compatibility pin. |
-| `tests/unit/contracts/` | Contract tests carried over from the monorepo (see *Status* below). |
+| `tests/unit/contracts/` | Contract tests (vitest): wire surface, implementation-free guard, `compat:gate` green + drift proof. |
 
-## Build
+## Build & test
 
 ```bash
+npm install          # installs the vitest/typescript toolchain
 npm run build        # tsc -p tsconfig.json -> dist/ (CommonJS + .d.ts)
+npm test             # builds, then runs the contract tests (vitest)
+npm run compat:gate  # builds, then verifies the compat-manifest pin vs the export
 ```
 
-Requires Node.js >= 22 and a TypeScript toolchain (`npm install` installs none today — there are no
-declared devDependencies yet). The package is type-checked and emitted successfully with
-TypeScript 5.8.
+Requires Node.js >= 22. The package is type-checked and emitted successfully with TypeScript 5.8.
 
 ### Version bumping contract
 
@@ -59,7 +60,8 @@ TypeScript 5.8.
   room-name or structure-entry-schema change).
 - `contracts` must equal `version` in `package.json`.
 
-The pre-split monorepo enforced these via `tests/unit/contracts/` and `compat:gate`; see *Status*.
+Both pins are enforced in this repository by `tests/unit/contracts/` and the repo-local `compat:gate`
+(`scripts/compat-gate.mjs`), which compares the manifest against what the package actually exports.
 
 ## How consumers obtain this package
 
@@ -78,13 +80,11 @@ CI job before the Phase-0.5 red/green auth proof has passed.
 
 ## Status
 
-- **Verified:** `npm run build` emits `dist/index.js` + `dist/index.d.ts` and the package loads
-  (`node -e "require('./dist/index.js')"`).
-- **Open follow-up:** the carried-over `tests/unit/contracts/**` still assume the monorepo layout
-  (`packages/crdt-contracts/...`, `../../../scripts/compat-gate.mjs`) and this repository has **no
-  test runner / `test` script / devDependencies**. Running them as-is will fail for path reasons,
-  not contract reasons. Re-rooting the tests and wiring `vitest` + `compat:gate` is a separate work
-  item. See [`docs/STATUS.md`](docs/STATUS.md).
+- **Verified:** `npm run build` emits `dist/index.js` + `dist/index.d.ts`, the package loads
+  (`node -e "require('./dist/index.js')"`), and `npm test` runs the re-rooted contract tests
+  (vitest) green against the repo-local `compat:gate`. See [`docs/STATUS.md`](docs/STATUS.md).
+- **Open follow-ups:** release tag + consumer pin (split-plan D-1, blocked on `SUBMODULES_TOKEN`)
+  and wiring the `openapi/` generation/lint command.
 
 ## Sibling repositories
 
