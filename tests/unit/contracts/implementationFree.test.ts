@@ -4,6 +4,18 @@ import path from 'node:path';
 
 const srcDir = path.resolve(import.meta.dirname, '../../../packages/crdt-contracts/src');
 
+/**
+ * Strips `//` and `/* *\/` comments so documentation prose (which legitimately
+ * says "no functions") cannot false-positive the code guard. The package
+ * source contains no regex/string literals with comment-like sequences, so a
+ * plain comment strip is sufficient.
+ */
+function stripComments(source: string): string {
+	return source
+		.replace(/\/\*[\s\S]*?\*\//gu, '')
+		.replace(/(^|[^:])\/\/[^\n]*/gmu, '$1');
+}
+
 function collectTsFiles(dir: string): string[] {
 	const out: string[] = [];
 	for (const entry of readdirSync(dir, {withFileTypes: true})) {
@@ -13,6 +25,18 @@ function collectTsFiles(dir: string): string[] {
 	}
 	return out;
 }
+
+const FORBIDDEN: Array<{pattern: RegExp; what: string}> = [
+	{pattern: /\bfunction\b/u, what: 'a function declaration'},
+	{pattern: /=>/u, what: 'an arrow function'},
+	{pattern: /\bclass\b/u, what: 'a class'},
+	{pattern: /uuidUtils|generateUuid/u, what: 'the uuid mint'},
+	{
+		pattern: /from\s+['"](?:node:)?(?:fs|crypto|path|http|os|child_process)['"]/u,
+		what: 'a Node implementation import',
+	},
+	{pattern: /@nestjs/u, what: 'a NestJS import'},
+];
 
 /**
  * Guards the Phase-0 design rule: the contracts package contains TYPES and
@@ -26,15 +50,20 @@ describe('contracts package is implementation-free', () => {
 		expect(files.length).toBeGreaterThan(0);
 
 		for (const file of files) {
-			const text = readFileSync(file, 'utf8');
-			expect(text, `${file} declares a function`).not.toMatch(/\bfunction\b/);
-			expect(text, `${file} declares an arrow function`).not.toMatch(/=>/);
-			expect(text, `${file} declares a class`).not.toMatch(/\bclass\b/);
-			expect(text, `${file} references the uuid mint`).not.toMatch(/uuidUtils|generateUuid/);
-			expect(text, `${file} imports a Node/implementation module`).not.toMatch(
-				/from ['"](?:node:)?(?:fs|crypto|path|http|os|child_process)['"]/,
-			);
-			expect(text, `${file} imports NestJS`).not.toMatch(/@nestjs/);
+			const code = stripComments(readFileSync(file, 'utf8'));
+			for (const {pattern, what} of FORBIDDEN) {
+				expect(code, `${file} declares ${what}`).not.toMatch(pattern);
+			}
 		}
+	});
+
+	it('ignores forbidden tokens that appear only inside comments', () => {
+		const commented =
+			'// function foo => class Bar uuidUtils\n/* fs crypto @nestjs */\nexport type T = string;\n';
+		const code = stripComments(commented);
+		for (const {pattern} of FORBIDDEN) {
+			expect(code).not.toMatch(pattern);
+		}
+		expect(code).toContain('export type T');
 	});
 });
