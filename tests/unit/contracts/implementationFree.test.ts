@@ -2,7 +2,7 @@ import {describe, it, expect} from 'vitest';
 import {readdirSync, readFileSync} from 'node:fs';
 import path from 'node:path';
 
-const srcDir = path.resolve(import.meta.dirname, '../../../packages/crdt-contracts/src');
+const srcDir = path.resolve(import.meta.dirname, '../../../src');
 
 /**
  * Strips `//` and `/* *\/` comments so documentation prose (which legitimately

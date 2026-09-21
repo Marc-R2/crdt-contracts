@@ -11,7 +11,9 @@ import {
 	CRDT_DOCID_PREFIXES,
 } from '@marc-r2/crdt-contracts';
 
-const contractsDir = path.resolve(import.meta.dirname, '../../../packages/crdt-contracts');
+// The package sits at the repository ROOT after the extraction (it was
+// `packages/crdt-contracts/` in the monorepo), so `../../..` is the repo root.
+const contractsDir = path.resolve(import.meta.dirname, '../../..');
 
 describe('@marc-r2/crdt-contracts wire surface', () => {
 	it('keeps the compat-manifest protocol pin in lockstep with PROTOCOL_VERSION', () => {

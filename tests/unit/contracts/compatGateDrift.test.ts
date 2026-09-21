@@ -6,7 +6,9 @@ import path from 'node:path';
 
 const repoRoot = path.resolve(import.meta.dirname, '../../..');
 const gateScript = path.join(repoRoot, 'scripts', 'compat-gate.mjs');
-const contractsSource = path.join(repoRoot, 'packages', 'crdt-contracts');
+// The package sits at the repository ROOT after the extraction (it was
+// `packages/crdt-contracts/` in the monorepo).
+const contractsSource = repoRoot;
 
 let tempDir: string | undefined;
 
@@ -24,7 +26,12 @@ afterEach(() => {
 describe('compat:gate drift regression', () => {
 	it('exits non-zero and names the mismatch when the declared pin disagrees with the exported PROTOCOL_VERSION', () => {
 		tempDir = mkdtempSync(path.join(tmpdir(), 'crdt-contracts-drift-'));
-		cpSync(contractsSource, tempDir, {recursive: true});
+		// Copy the package surface only: `node_modules/` (large) and `.git/`
+		// (history) are irrelevant to the gate and must never be copied.
+		cpSync(contractsSource, tempDir, {
+			recursive: true,
+			filter: (src) => path.basename(src) !== 'node_modules' && path.basename(src) !== '.git',
+		});
 
 		const manifestPath = path.join(tempDir, 'compat-manifest.json');
 		const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {protocolVersion: number};
