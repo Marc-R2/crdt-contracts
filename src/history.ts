@@ -1,6 +1,7 @@
 /**
- * history — shared history timeline wire types for the desktop plugin and
- * the web portal.
+ * history — history timeline wire types consumed by the desktop plugin.
+ * (The Web Portal/WebVault keep portal-local copies and must NOT import this
+ * package — see AGENTS.md.)
  *
  * Implementation-free: interfaces/type aliases ONLY.
  */
