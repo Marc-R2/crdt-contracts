@@ -1,0 +1,16 @@
+Context & Technical Rationale:
+No runner existed: package.json had only a build script, no devDependencies.
+vitest 5 + typescript 5.8 + vite 8 + @types/node mirror the parent monorepo's
+proven toolchain. The package name is aliased to src/index.ts in
+vitest.config.mts because the tests import '@marc-r2/crdt-contracts'; standalone
+there is no node_modules link and Node self-reference requires an exports field,
+which we deliberately do not add (it would restrict/alter consumer subpath
+resolution). pretest runs the build so require(dist) is the artifact under test
+and the compat gate reads the same compiled output consumers load. The lockfile
+is committed so npm ci is reproducible.
+
+Privacy & Security Guarantees:
+Dev-only toolchain; no runtime dependencies were added to the package. No
+network calls, credentials or telemetry are introduced. node_modules/ and
+coverage/ are gitignored so build artifacts and installed packages never enter
+history.
