@@ -1,0 +1,12 @@
+Context: strict review found product CI was removed from the umbrella without replacements; crdt-contracts had zero .github/workflows files.
+
+Validation (local, Node v26.5.0; CI pins Node 22):
+- actionlint (rhysd/actionlint:latest, docker): exit 0, no findings.
+- npm ci: ok (41 pkgs).
+- npm run build: exit 0 (tsc -> dist/).
+- npm test: 4 files / 8 tests passed; pretest rebuilds dist.
+- npm run compat:gate: GREEN — contracts 0.1.0, protocolVersion 1.
+
+Privacy/security: no secrets, no registry auth, no external uploads.
+
+Runner-only differences: Node 22 vs local Node 26. No GitHub run can go green (account-level billing/spending-limit failure per task).
