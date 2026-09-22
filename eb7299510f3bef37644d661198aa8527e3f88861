@@ -1,0 +1,11 @@
+Context & Technical Rationale:
+README.md and docs/STATUS.md still claimed the tests were unrunnable and the
+repo had no runner/devDependencies. After wiring vitest + the repo-local
+compat:gate, those statements are stale; the docs now list the install/test/
+gate commands, describe the package-local gate semantics, and move the re-root
+and runner items from Open follow-ups to a Closed section. Only the release
+tag/pin (blocked on SUBMODULES_TOKEN) and the openapi generation command remain
+open.
+
+Privacy & Security Guarantees:
+Documentation-only change; no code, no data flows, no credentials.

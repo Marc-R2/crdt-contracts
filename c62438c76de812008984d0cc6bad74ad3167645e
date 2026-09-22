@@ -1,0 +1,2 @@
+Rationale: a red/green proof in a comment is not enforcement. The --contracts-dir override keeps the drift test hermetic (throwaway copy) while the real repo checks (dependency declaration, consumer imports) still run against repoRoot. Discarded alternative: mutating the real manifest in the test (rejected — leaves the repo dirty on failure).
+Privacy & security: no network, no credentials.

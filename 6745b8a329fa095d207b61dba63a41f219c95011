@@ -1,0 +1,19 @@
+Context & Technical Rationale
+- crdt-contracts is the first of five repos extracted from the
+  obsidian-crdt-sync monorepo (split Phase 1). It had no README, so
+  consumers could not discover its surface, build command or the
+  compat-manifest pin contract. The README is derived from the actual
+  src/*.ts headers, package.json, tsconfig.json, compat-manifest.json
+  and the parent docs/REPO_SPLIT_PLAN.md (D-1, HB-2, section 4.1).
+- Status is stated as found: build verified; the carried-over contract
+  tests are not runnable standalone because their paths and runner were
+  monorepo-relative. No claim of a green test suite.
+- The README links the parent plan for split architecture and records
+  the sibling/consumer relationships.
+
+Privacy & Security Guarantees
+- Documentation-only change. No code, workflow, package manifest,
+  credential, token, or live data touched.
+- No data egress: nothing is uploaded; the repo is published with its
+  own origin only. `SUBMODULES_TOKEN` is referenced by NAME only, never
+  a value, and is documented as NOT yet configured.
