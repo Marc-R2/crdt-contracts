@@ -52,4 +52,33 @@ describe('compat:gate drift regression', () => {
 		expect(output).toContain('RED');
 		expect(output).toContain('protocolVersion mismatch');
 	});
+
+	it('exits non-zero when the openapiSha256 pin is a valid-but-WRONG 64-hex hash', () => {
+		tempDir = mkdtempSync(path.join(tmpdir(), 'crdt-contracts-openapi-drift-'));
+		cpSync(contractsSource, tempDir, {
+			recursive: true,
+			filter: (src) => path.basename(src) !== 'node_modules' && path.basename(src) !== '.git',
+		});
+
+		const manifestPath = path.join(tempDir, 'compat-manifest.json');
+		const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {openapiSha256: string};
+		// Flip ONE hex char: still 64-hex, so presence/format alone would pass.
+		const flipped = (manifest.openapiSha256[0] === '0' ? '1' : '0') + manifest.openapiSha256.slice(1);
+		manifest.openapiSha256 = flipped;
+		writeFileSync(manifestPath, `${JSON.stringify(manifest, null, '\t')}\n`);
+
+		let status = 0;
+		let output = '';
+		try {
+			execFileSync('node', [gateScript, '--contracts-dir', tempDir], {encoding: 'utf8'});
+		} catch (err) {
+			const failure = err as {status?: number; stdout?: string; stderr?: string};
+			status = failure.status ?? -1;
+			output = `${failure.stdout ?? ''}${failure.stderr ?? ''}`;
+		}
+
+		expect(status).not.toBe(0);
+		expect(output).toContain('RED');
+		expect(output).toContain('openapiSha256 mismatch');
+	});
 });
