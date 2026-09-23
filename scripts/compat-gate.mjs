@@ -102,6 +102,17 @@ if (manifest.contracts !== contractsPkg.version) {
 	);
 }
 
+// OpenAPI contract pin (decision C-6): the manifest must carry the sha256 of
+// the committed openapi.yaml so consumers can pin the REST contract. The
+// gate checks PRESENCE + format here; the byte-level render-vs-file check
+// (and pin-vs-render equality) lives in `check:openapi`, which must run
+// right after build (see .github/workflows/test.yml).
+if (!manifest.openapiSha256) {
+	errors.push('compat-manifest.json is missing the "openapiSha256" pin (C-6)');
+} else if (!/^[0-9a-f]{64}$/.test(manifest.openapiSha256)) {
+	errors.push(`compat-manifest.json openapiSha256 is not a 64-hex sha256: ${manifest.openapiSha256}`);
+}
+
 if (errors.length > 0) {
 	console.error('[compat-gate] RED — protocol contract drift detected:');
 	for (const e of errors) console.error(`  - ${e}`);
@@ -110,5 +121,6 @@ if (errors.length > 0) {
 
 console.log(
 	`[compat-gate] GREEN — contracts ${manifest.contracts}, protocolVersion ${exported.value} ` +
-	`(read via ${exported.via}); the compat pin matches the exported contract.`,
+	`(read via ${exported.via}), openapiSha256 pinned ` +
+	`(${String(manifest.openapiSha256).slice(0, 12)}…); the compat pin matches the exported contract.`,
 );

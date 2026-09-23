@@ -1,4 +1,5 @@
 {
 	"contracts": "0.1.0",
-	"protocolVersion": 1
+	"protocolVersion": 1,
+	"openapiSha256": "39c5bc1d5c7992828d098c507d093fd04bd2d28d16c10f632b7a71c775567d66"
 }
