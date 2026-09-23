@@ -1,5 +1,150 @@
 components:
   schemas:
+    BatchCheckRequest:
+      properties:
+        hashes:
+          description: "Up to 500 blob hashes per request; larger sets are chunked by the client."
+          items:
+            description: "64-hex SHA-256 blob hash."
+            type: "string"
+          maxItems: 500
+          type: "array"
+      required:
+        - "hashes"
+      type: "object"
+    BatchCheckResult:
+      properties:
+        chunked:
+          description: "Hashes with an in-progress chunked upload (can be resumed)."
+          items:
+            type: "string"
+          type: "array"
+        existing:
+          description: "Hashes that exist as complete blobs on the server."
+          items:
+            type: "string"
+          type: "array"
+        missing:
+          description: "Hashes that are missing from the server."
+          items:
+            type: "string"
+          type: "array"
+      required:
+        - "existing"
+        - "missing"
+      type: "object"
+    BlobManifest:
+      properties:
+        blobs:
+          items:
+            "$ref": "#/components/schemas/BlobManifestEntry"
+          type: "array"
+        count:
+          description: "Number of entries in THIS page (blobs.length)."
+          type: "integer"
+        total:
+          description: "Full blob count of the store."
+          type: "integer"
+        totalSize:
+          description: "Summed size of the returned page entries (bounded work per request)."
+          type: "integer"
+      required:
+        - "blobs"
+        - "totalSize"
+        - "count"
+        - "total"
+      type: "object"
+    BlobManifestEntry:
+      properties:
+        createdAt:
+          "$ref": "#/components/schemas/UnixTimestamp"
+        hash:
+          description: "64-hex SHA-256 blob hash."
+          type: "string"
+        size:
+          description: "Blob size in bytes."
+          type: "integer"
+      required:
+        - "hash"
+        - "size"
+        - "createdAt"
+      type: "object"
+    BugReportRequest:
+      properties:
+        clientVersion:
+          nullable: true
+          type: "string"
+        description:
+          nullable: true
+          type: "string"
+        id:
+          description: "Optional client-supplied id (bug-<1..64 id-chars>); generated when missing."
+          pattern: "^bug-[a-zA-Z0-9_-]{1,64}$"
+          type: "string"
+        logs:
+          description: "String or string array (validator: string OR array of strings; null is rejected)."
+          oneOf:
+            - type: "string"
+            - items:
+                type: "string"
+              type: "array"
+        platform:
+          nullable: true
+          type: "string"
+        systemInfo:
+          nullable: true
+          type: "object"
+        title:
+          maxLength: 200
+          type: "string"
+      required:
+        - "title"
+      type: "object"
+    ChunkUploadStatus:
+      properties:
+        chunkSize:
+          description: "Chunk size in bytes."
+          type: "integer"
+        complete:
+          description: "True once every chunk is uploaded and the upload is ready to commit."
+          type: "boolean"
+        presentChunks:
+          description: "Indexes of already-uploaded chunks (resume support)."
+          items:
+            type: "integer"
+          type: "array"
+        totalChunks:
+          type: "integer"
+        totalSize:
+          description: "Expected total blob size in bytes."
+          type: "integer"
+      required:
+        - "complete"
+        - "totalChunks"
+        - "presentChunks"
+        - "chunkSize"
+        - "totalSize"
+      type: "object"
+    CommitInfo:
+      properties:
+        commitId:
+          type: "string"
+        createdAt:
+          "$ref": "#/components/schemas/UnixTimestamp"
+        createdBy:
+          type: "string"
+        docId:
+          nullable: true
+          type: "string"
+        name:
+          type: "string"
+        scope:
+          description: "'note' | 'vault'."
+          type: "string"
+        seq:
+          nullable: true
+          type: "integer"
+      type: "object"
     DocId:
       description: "Document ID."
       type: "string"
@@ -40,34 +185,6 @@ components:
         message:
           description: "Message describing the error."
           type: "string"
-      type: "object"
-    FsEntry:
-      properties:
-        docId:
-          "$ref": "#/components/schemas/DocId"
-        globalId:
-          "$ref": "#/components/schemas/GlobalId"
-        isPresent:
-          description: "Indicates if the file or snapshot is present on the server. If false, the file of snapshot is missing - needs to be uploaded by the client."
-          type: "boolean"
-        path:
-          description: "Path of the fs entry relative to the project root. Use forward slashes, no leading slash, case-sensitive."
-          type: "string"
-        stamp:
-          "$ref": "#/components/schemas/UnixTimestamp"
-          description: "Client-provided modification time (offline-first). Server validates plausibility and uses LWW by stamp."
-        status:
-          description: "Entry status within the project. Example: \"active\", \"archived\", \"deleted\"."
-          type: "string"
-        updated:
-          "$ref": "#/components/schemas/UnixTimestamp"
-          description: "Server write timestamp for this entry. Used as a tie-breaker when stamps are equal."
-      required:
-        - "globalId"
-        - "docId"
-        - "path"
-        - "stamp"
-        - "status"
       type: "object"
     GetSnapshotRequest:
       properties:
@@ -122,6 +239,44 @@ components:
       description: "Server-assigned globally unique identifier (UUID)."
       format: "uuid"
       type: "string"
+    HealthResponse:
+      properties:
+        activeRooms:
+          description: "Currently active WebSocket rooms (projects)."
+          type: "integer"
+        blobCount:
+          description: "Number of stored blobs (lazy probe)."
+          type: "integer"
+        dbSize:
+          description: "Size of the per-project SQLite storage in bytes."
+          type: "integer"
+        ok:
+          description: "Always `true` when the process answers."
+          type: "boolean"
+        uptime:
+          description: "Process uptime in seconds."
+          type: "number"
+      required:
+        - "ok"
+      type: "object"
+    HistoryUser:
+      properties:
+        clientId:
+          description: "Yjs client id."
+          type: "integer"
+        color:
+          description: "Attribution color (derived per user)."
+          type: "string"
+        userId:
+          type: "string"
+        userName:
+          type: "string"
+      required:
+        - "clientId"
+        - "userId"
+        - "userName"
+        - "color"
+      type: "object"
     InfoResponse:
       properties:
         ok:
@@ -166,10 +321,74 @@ components:
       required:
         - "snapshotInfos"
       type: "object"
-    ProjectId:
-      description: "Project ID (UUID v4)."
-      format: "uuid"
-      type: "string"
+    OkAckResponse:
+      properties:
+        deleted:
+          description: "Row count (GDPR delete routes)."
+          nullable: true
+          type: "integer"
+        id:
+          nullable: true
+          type: "string"
+        ok:
+          type: "boolean"
+      required:
+        - "ok"
+      type: "object"
+    ProjectData:
+      properties:
+        createdAt:
+          description: "Creation timestamp (unix ms)."
+          type: "integer"
+        name:
+          description: "Human-readable project name."
+          type: "string"
+        projectId:
+          description: "Unique project identifier."
+          type: "string"
+        userId:
+          description: "Primary owner userId."
+          type: "string"
+      type: "object"
+    ProjectMember:
+      properties:
+        addedBy:
+          nullable: true
+          type: "string"
+        avatarUrl:
+          nullable: true
+          type: "string"
+        createdAt:
+          description: "Unix ms."
+          type: "integer"
+        email:
+          nullable: true
+          type: "string"
+        name:
+          nullable: true
+          type: "string"
+        projectId:
+          type: "string"
+        role:
+          description: "Member role: 'owner' | 'editor' | 'viewer'."
+          type: "string"
+        userId:
+          type: "string"
+      type: "object"
+    ProjectUserSearchResult:
+      properties:
+        avatarUrl:
+          nullable: true
+          type: "string"
+        email:
+          nullable: true
+          type: "string"
+        name:
+          nullable: true
+          type: "string"
+        userId:
+          type: "string"
+      type: "object"
     Snapshot:
       properties:
         globalId:
@@ -203,9 +422,334 @@ components:
         - "globalId"
         - "hashPart"
       type: "object"
+    TimelineCheckpoint:
+      properties:
+        checkpointSeq:
+          description: "Checkpoint sequence (every CHECKPOINT_INTERVAL=100 stored seqs)."
+          type: "integer"
+        createdAt:
+          "$ref": "#/components/schemas/UnixTimestamp"
+        seq:
+          description: "Last captured seq covered by this checkpoint."
+          type: "integer"
+      required:
+        - "checkpointSeq"
+        - "seq"
+        - "createdAt"
+      type: "object"
+    TimelineCommit:
+      properties:
+        commitId:
+          type: "string"
+        createdAt:
+          "$ref": "#/components/schemas/UnixTimestamp"
+        createdBy:
+          type: "string"
+        docId:
+          description: "Only for note-scoped commits."
+          nullable: true
+          type: "string"
+        name:
+          type: "string"
+        scope:
+          description: "'note' | 'vault'."
+          type: "string"
+        seq:
+          nullable: true
+          type: "integer"
+      type: "object"
+    TimelineIndex:
+      properties:
+        checkpoints:
+          items:
+            "$ref": "#/components/schemas/TimelineCheckpoint"
+          type: "array"
+        commits:
+          items:
+            "$ref": "#/components/schemas/TimelineCommit"
+          type: "array"
+        docId:
+          "$ref": "#/components/schemas/DocId"
+        firstTs:
+          "$ref": "#/components/schemas/UnixTimestamp"
+        lastTs:
+          "$ref": "#/components/schemas/UnixTimestamp"
+        seqCount:
+          description: "Number of captured updates."
+          type: "integer"
+        users:
+          description: "PRIVACY: only users with an edit on THIS document are exposed (vault commit authors who never touched the note are omitted)."
+          items:
+            "$ref": "#/components/schemas/HistoryUser"
+          type: "array"
+      required:
+        - "docId"
+        - "seqCount"
+        - "firstTs"
+        - "lastTs"
+        - "checkpoints"
+        - "commits"
+        - "users"
+      type: "object"
     UnixTimestamp:
       description: "Unix timestamp in milliseconds."
       type: "integer"
+    VcsBranch:
+      properties:
+        headCommit:
+          type: "string"
+        isCurrent:
+          type: "boolean"
+        name:
+          type: "string"
+        upstream:
+          nullable: true
+          type: "string"
+      type: "object"
+    VcsBranchRequest:
+      properties:
+        name:
+          type: "string"
+        startPoint:
+          nullable: true
+          type: "string"
+      required:
+        - "name"
+      type: "object"
+    VcsCheckoutRequest:
+      properties:
+        name:
+          type: "string"
+      required:
+        - "name"
+      type: "object"
+    VcsCommit:
+      properties:
+        author:
+          type: "string"
+        authorEmail:
+          type: "string"
+        branches:
+          items:
+            type: "string"
+          type: "array"
+        date:
+          description: "Unix timestamp (ms)."
+          type: "integer"
+        message:
+          type: "string"
+        parents:
+          items:
+            type: "string"
+          type: "array"
+        sha:
+          type: "string"
+        shortSha:
+          type: "string"
+        tags:
+          items:
+            type: "string"
+          type: "array"
+      type: "object"
+    VcsCommitDetails:
+      properties:
+        author:
+          type: "string"
+        authorEmail:
+          type: "string"
+        branches:
+          items:
+            type: "string"
+          type: "array"
+        date:
+          type: "integer"
+        files:
+          items:
+            "$ref": "#/components/schemas/VcsFileChange"
+          type: "array"
+        manifest:
+          nullable: true
+          type: "object"
+        message:
+          type: "string"
+        parents:
+          items:
+            type: "string"
+          type: "array"
+        sha:
+          type: "string"
+        shortSha:
+          type: "string"
+        tags:
+          items:
+            type: "string"
+          type: "array"
+      type: "object"
+    VcsCommitRequest:
+      properties:
+        filePaths:
+          description: "Optional path filter for a partial commit."
+          items:
+            type: "string"
+          type: "array"
+        message:
+          type: "string"
+      required:
+        - "message"
+      type: "object"
+    VcsError:
+      properties:
+        error:
+          type: "string"
+      type: "object"
+    VcsFileChange:
+      properties:
+        additions:
+          nullable: true
+          type: "integer"
+        deletions:
+          nullable: true
+          type: "integer"
+        oldPath:
+          nullable: true
+          type: "string"
+        path:
+          type: "string"
+        staged:
+          nullable: true
+          type: "boolean"
+        status:
+          description: "'modified' | 'added' | 'deleted' | 'untracked' | 'renamed'."
+          type: "string"
+      type: "object"
+    VcsMergeRequest:
+      properties:
+        message:
+          nullable: true
+          type: "string"
+        name:
+          type: "string"
+      required:
+        - "name"
+      type: "object"
+    VcsOperationAck:
+      properties:
+        ok:
+          type: "boolean"
+        status:
+          "$ref": "#/components/schemas/VcsStatus"
+      type: "object"
+    VcsPushFetchRequest:
+      properties:
+        branch:
+          description: "push only: branch name (assertValidBranchName)."
+          nullable: true
+          type: "string"
+        remote:
+          description: "Remote name (default 'origin'; assertSafeRemoteName)."
+          type: "string"
+      type: "object"
+    VcsRemote:
+      properties:
+        fetchUrl:
+          nullable: true
+          type: "string"
+        name:
+          type: "string"
+        pushUrl:
+          nullable: true
+          type: "string"
+        url:
+          type: "string"
+      type: "object"
+    VcsRemoteRequest:
+      properties:
+        name:
+          type: "string"
+        url:
+          description: "http(s)/ssh remote URL - validated by assertSafeRemoteUrl."
+          type: "string"
+      required:
+        - "name"
+        - "url"
+      type: "object"
+    VcsRestoreRequest:
+      properties:
+        commitSha:
+          type: "string"
+        path:
+          description: "Optional single-file restore."
+          nullable: true
+          type: "string"
+      required:
+        - "commitSha"
+      type: "object"
+    VcsStatus:
+      properties:
+        ahead:
+          type: "integer"
+        behind:
+          type: "integer"
+        branch:
+          type: "string"
+        branches:
+          items:
+            "$ref": "#/components/schemas/VcsBranch"
+          type: "array"
+        headCommit:
+          nullable: true
+          type: "string"
+        headMessage:
+          type: "string"
+        remotes:
+          items:
+            "$ref": "#/components/schemas/VcsRemote"
+          type: "array"
+        tags:
+          items:
+            "$ref": "#/components/schemas/VcsTag"
+          type: "array"
+        uncommitted:
+          items:
+            "$ref": "#/components/schemas/VcsFileChange"
+          type: "array"
+      type: "object"
+    VcsTag:
+      properties:
+        commit:
+          type: "string"
+        message:
+          nullable: true
+          type: "string"
+        name:
+          type: "string"
+      type: "object"
+    VcsTagRequest:
+      properties:
+        commitSha:
+          nullable: true
+          type: "string"
+        message:
+          nullable: true
+          type: "string"
+        name:
+          type: "string"
+      required:
+        - "name"
+      type: "object"
+    VcsTreeEntry:
+      properties:
+        path:
+          type: "string"
+        sha:
+          type: "string"
+        size:
+          nullable: true
+          type: "integer"
+        type:
+          description: "'blob' | 'tree'."
+          type: "string"
+      type: "object"
   securitySchemes:
     BearerAuth:
       description: "Opaque bearer token issued by the server (not a JWT)."
@@ -216,8 +760,7 @@ info:
     REST API for the Obsidian CRDT Sync Server.
     
     This server enables real-time collaboration using Yjs as a CRDT. Documents are synchronized over WebSocket and persisted with SQLite.
-    The REST API provides endpoints for project management, snapshot access, and blob transfer.
-    Blob upload/download uses raw binary streaming on /blobs/* endpoints (not part of this generated API — see blobRouteHandler.ts).
+    The REST API covers the generated JSON controllers (snapshot/doc-status/system), the paste-token + account routes, the raw binary blob transfer (/blobs/*, blobRouteHandler.ts, not the generated NestJS controllers), the history capture API (raw binary chunks) and the experimental Git VCS routes.
     
     **Features:**
     - WebSocket-based real-time synchronization
@@ -229,91 +772,22 @@ info:
     
     The WebSocket server runs on port 1234 by default.
   title: "Obsidian CRDT Sync Server API"
-  version: "0.0.1"
+  version: "0.1.0"
 openapi: "3.0.2"
 paths:
-  /auth/device-tokens:
-    post:
-      description: "Mints a single-use paste/device token (5 min TTL). Only the SHA-256 hash is persisted; the plaintext code is returned exactly once. Authenticated via bearer token OR the httpOnly portal session cookie. The Obsidian plugin uses the returned code with POST /auth/exchange to obtain a full session."
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: "object"
-              properties:
-                label:
-                  type: "string"
-                  description: "Optional human-readable label for the device token."
-        required: false
+  /:
+    get:
+      description: "Returns basic information about the CRDT Sync Server for health checks."
       responses:
         "200":
           content:
             application/json:
               schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "string"
-                    description: "One-time plaintext code (shown only here)."
-              description: "Token minted."
-        "401":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
-          description: "Missing or invalid session."
-      summary: "Mint a single-use device token."
+                "$ref": "#/components/schemas/InfoResponse"
+          description: "Server info returned successfully."
+      summary: "Return basic server information."
       tags:
-        - "Auth"
-  /auth/exchange:
-    post:
-      description: "Exchanges a paste/device code for a full session token. Validates existence, single-use and 5-minute TTL, marks the token used, and creates a session row carrying the device label. Rate-limited to 5 attempts per minute per IP (brute-force bound)."
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: "object"
-              required:
-                - "code"
-              properties:
-                code:
-                  type: "string"
-                deviceLabel:
-                  type: "string"
-                  description: "Label recorded on the created session (shown in the account sessions list)."
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  token:
-                    type: "string"
-                    description: "New session_ token."
-              description: "Session created."
-        "400":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
-          description: "Missing code / invalid JSON."
-        "401":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
-          description: "Invalid, used, or expired code."
-        "429":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
-          description: "Too many exchange attempts."
-      summary: "Exchange a device code for a session."
-      tags:
-        - "Auth"
+        - "System"
   /account:
     get:
       description: "Returns the authenticated user's profile. Auth: bearer token OR httpOnly portal session cookie."
@@ -322,23 +796,23 @@ paths:
           content:
             application/json:
               schema:
-                type: "object"
                 properties:
-                  id:
+                  avatarUrl:
+                    nullable: true
                     type: "string"
                   email:
-                    type: "string"
                     nullable: true
-                  name:
                     type: "string"
-                    nullable: true
-                  avatarUrl:
-                    type: "string"
-                    nullable: true
                   googlePicture:
-                    type: "string"
                     nullable: true
-              description: "Profile returned."
+                    type: "string"
+                  id:
+                    type: "string"
+                  name:
+                    nullable: true
+                    type: "string"
+                type: "object"
+          description: "Profile returned."
         "401":
           content:
             application/json:
@@ -355,35 +829,35 @@ paths:
         content:
           application/json:
             schema:
-              type: "object"
               properties:
-                name:
-                  type: "string"
                 avatarUrl:
                   type: "string"
+                name:
+                  type: "string"
+              type: "object"
         required: false
       responses:
         "200":
           content:
             application/json:
               schema:
-                type: "object"
                 properties:
-                  id:
+                  avatarUrl:
+                    nullable: true
                     type: "string"
                   email:
-                    type: "string"
                     nullable: true
-                  name:
                     type: "string"
-                    nullable: true
-                  avatarUrl:
-                    type: "string"
-                    nullable: true
                   googlePicture:
-                    type: "string"
                     nullable: true
-              description: "Updated profile returned."
+                    type: "string"
+                  id:
+                    type: "string"
+                  name:
+                    nullable: true
+                    type: "string"
+                type: "object"
+          description: "Updated profile returned."
         "400":
           content:
             application/json:
@@ -399,6 +873,245 @@ paths:
       summary: "Update the user's profile."
       tags:
         - "Account"
+  /account/projects:
+    get:
+      description: "Lists the authenticated user's project memberships with owner/editor/viewer role and member count (portal view)."
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  projects:
+                    items:
+                      properties:
+                        id:
+                          type: "string"
+                        memberCount:
+                          type: "integer"
+                        name:
+                          type: "string"
+                        projectId:
+                          type: "string"
+                        role:
+                          type: "string"
+                      type: "object"
+                    type: "array"
+                type: "object"
+          description: "Project list returned."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Missing or invalid session."
+      summary: "List the user's projects."
+      tags:
+        - "Account"
+  "/account/projects/{projectId}/members":
+    get:
+      description: "Lists all members of the given project (role + profile details). Requires project access; non-members get 403."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  members:
+                    items:
+                      "$ref": "#/components/schemas/ProjectMember"
+                    type: "array"
+                type: "object"
+          description: "Members returned."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Missing or invalid session."
+        "403":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Forbidden (no project access)."
+        "404":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Project not found."
+      summary: "List the project members."
+      tags:
+        - "Members"
+    post:
+      description: "Adds a member with role owner/editor/viewer (default editor). Only project owners and editors may invite; only owners may grant the owner role. Either `userId` or `email` must be provided — an unknown email registers a stub user. Returns the created member."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                email:
+                  type: "string"
+                role:
+                  description: "Default 'editor'."
+                  type: "string"
+                userId:
+                  type: "string"
+              type: "object"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                properties:
+                  member:
+                    "$ref": "#/components/schemas/ProjectMember"
+                  success:
+                    type: "boolean"
+                type: "object"
+          description: "Member added."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Invalid JSON or missing userId/email."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Missing or invalid session."
+        "403":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Only owners/editors may invite (owner role for owners only)."
+        "404":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Project not found."
+        "405":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Method Not Allowed."
+      summary: "Invite a project member."
+      tags:
+        - "Members"
+  "/account/projects/{projectId}/members/me":
+    get:
+      description: "Returns `{role}` for an authenticated PROJECT MEMBER (the portal UI self-role lookup); non-members get 403. Kept before the generic member branches so 'me' is never mistaken for a userId."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  role:
+                    description: "'owner' | 'editor' | 'viewer'."
+                    type: "string"
+                required:
+                  - "role"
+                type: "object"
+          description: "Role returned."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Missing or invalid session."
+        "403":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Forbidden (not a member)."
+        "404":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Project not found."
+      summary: "Get the caller's own project role."
+      tags:
+        - "Members"
+  "/account/projects/{projectId}/members/{userId}":
+    delete:
+      description: "Removes a member. Only an owner (or the member removing themselves) may do this; the primary project owner cannot be removed. Returns {success:true} on 200 (chosen over 204 for symmetry with the POST)."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+        - description: "Member userId to remove."
+          in: "path"
+          name: "userId"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  success:
+                    type: "boolean"
+                type: "object"
+          description: "Member removed."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Cannot remove primary project owner."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Missing or invalid session."
+        "403":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Forbidden (not owner and not self)."
+        "404":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Project not found."
+      summary: "Remove a project member."
+      tags:
+        - "Members"
   /account/sessions:
     get:
       description: "Lists the authenticated user's active sessions (revoked ones are excluded). The calling session is marked isCurrent=true. Own-session revocation is not allowed."
@@ -407,27 +1120,30 @@ paths:
           content:
             application/json:
               schema:
-                type: "object"
                 properties:
                   sessions:
-                    type: "array"
                     items:
-                      type: "object"
                       properties:
-                        id:
-                          type: "string"
-                        deviceLabel:
-                          type: "string"
-                          nullable: true
-                        lastSeenAt:
-                          type: "integer"
-                          nullable: true
                         createdAt:
-                          type: "integer"
+                          description: "Unix ms."
                           nullable: true
+                          type: "integer"
+                        deviceLabel:
+                          nullable: true
+                          type: "string"
+                        id:
+                          description: "Opaque sid (never the raw token)."
+                          type: "string"
                         isCurrent:
                           type: "boolean"
-              description: "Session list returned."
+                        lastSeenAt:
+                          description: "Unix ms."
+                          nullable: true
+                          type: "integer"
+                      type: "object"
+                    type: "array"
+                type: "object"
+          description: "Session list returned."
         "401":
           content:
             application/json:
@@ -437,11 +1153,56 @@ paths:
       summary: "List the user's active sessions."
       tags:
         - "Account"
-  /account/sessions/{id}:
+  /account/sessions/current:
+    patch:
+      description: "Renames the CALLING session's device label (device transfers a new name). The target session is resolved from bearer-or-cookie auth, never from the body. Returns 200 {deviceLabel} (chosen over 204 so the client gets the normalized/trimmed value back)."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                deviceLabel:
+                  description: "New label, 1-100 characters after trimming."
+                  type: "string"
+              type: "object"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  deviceLabel:
+                    type: "string"
+                type: "object"
+          description: "Renamed; the normalized label is returned."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "deviceLabel must be a string of 1-100 characters."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Missing or invalid session."
+        "404":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Current session not found."
+      summary: "Rename the calling session."
+      tags:
+        - "Account"
+  "/account/sessions/{id}":
     delete:
       description: "Revokes another active session of the authenticated user (never the current one). Revocation invalidates the session cache immediately."
       parameters:
-        - in: "path"
+        - description: "Opaque sid of the target session (the raw token is never accepted)."
+          in: "path"
           name: "id"
           required: true
           schema:
@@ -470,48 +1231,790 @@ paths:
       summary: "Revoke another session."
       tags:
         - "Account"
-  /account/projects:
+  /account/users/search:
     get:
-      description: "Lists the authenticated user's project memberships."
+      description: "Searches users by email/name/userId for the members-management UI. PRIVILEGE-GATED + rate-limited: only project owners/editors may search; the `projectId` query param is REQUIRED so plain account holders and viewers get 403 (no global user enumeration, F5)."
+      parameters:
+        - description: "Project whose owner/editor is searching."
+          in: "query"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+        - description: "Case-insensitive substring over email/name or exact userId; max 10 results."
+          in: "query"
+          name: "q"
+          required: false
+          schema:
+            type: "string"
       responses:
         "200":
           content:
             application/json:
               schema:
-                type: "object"
                 properties:
-                  projects:
-                    type: "array"
+                  users:
                     items:
-                      type: "object"
-                      properties:
-                        id:
-                          type: "string"
-                        name:
-                          type: "string"
-              description: "Project list returned."
+                      "$ref": "#/components/schemas/ProjectUserSearchResult"
+                    type: "array"
+                type: "object"
+          description: "Matching users (at most 10)."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "projectId is required."
         "401":
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
           description: "Missing or invalid session."
-      summary: "List the user's projects."
+        "403":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Only project owners and editors can search users."
+        "404":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Project not found."
+        "429":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Too Many Requests."
+      summary: "Search users for member invitations."
       tags:
         - "Account"
-  /:
+  /api-docs:
     get:
-      description: "Returns basic information about the CRDT Sync Server for health checks."
+      description: "Serves a minimal HTML page listing the main endpoints and the locations of the machine-readable contract (`/openapi.yaml`) and the health probe."
+      responses:
+        "200":
+          content:
+            text/html:
+              schema:
+                type: "string"
+          description: "API documentation page (HTML)."
+      summary: "Return the human-readable API documentation page."
+      tags:
+        - "System"
+  /api/bug-reports:
+    delete:
+      description: "User-owned deletion: removes EVERY bug report of the calling user. Use `DELETE /api/bug-reports/{id}` to delete one specific report."
       responses:
         "200":
           content:
             application/json:
               schema:
-                "$ref": "#/components/schemas/InfoResponse"
-          description: "Server info returned successfully."
-      summary: "Return basic server information."
+                "$ref": "#/components/schemas/OkAckResponse"
+          description: "Deletion result (deleted = number of rows removed)."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Authentication required."
+      summary: "Delete all of the caller's bug reports (GDPR)."
+      tags:
+        - "Diagnostics"
+    post:
+      description: "Stores an authenticated bug report (512 KB body cap). Only the validated top-level fields are stored structured; the full payload is kept as payload_json."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/BugReportRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                properties:
+                  id:
+                    type: "string"
+                  ok:
+                    type: "boolean"
+                required:
+                  - "ok"
+                  - "id"
+                type: "object"
+          description: "Report stored."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Validation failure."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Authentication required."
+        "413":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Report payload exceeds 512 KB."
+      summary: "Submit a bug report."
+      tags:
+        - "Diagnostics"
+  "/api/bug-reports/{id}":
+    delete:
+      description: "User-owned deletion of a single report: the server derives the id from the path subpath (`/api/bug-reports/` prefix stripped) and scopes the DELETE to the calling user (a foreign/unknown id removes 0 rows and still answers 200)."
+      parameters:
+        - description: "Report id to delete (user-owned)."
+          in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/OkAckResponse"
+          description: "Deletion result (deleted = 1 when the report existed and belonged to the caller, else 0)."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Authentication required."
+      summary: "Delete one bug report by id (GDPR)."
+      tags:
+        - "Diagnostics"
+  /api/telemetry:
+    delete:
+      description: "Removes every telemetry record of the calling user and returns the row count."
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/OkAckResponse"
+          description: "Deletion result."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Authentication required."
+      summary: "Delete telemetry records (GDPR)."
+      tags:
+        - "Diagnostics"
+    post:
+      description: "Stores an authenticated telemetry record (bucketDate must be YYYY-MM-DD, K1). Optional feature/scale/health counters are validated as numeric objects; the full payload is kept as payload_json."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                bucketDate:
+                  description: "ISO date (YYYY-MM-DD) bucket key."
+                  pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+                  type: "string"
+                clientVersion:
+                  nullable: true
+                  type: "string"
+                platform:
+                  nullable: true
+                  type: "string"
+              required:
+                - "bucketDate"
+              type: "object"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  id:
+                    type: "string"
+                  ok:
+                    type: "boolean"
+                required:
+                  - "ok"
+                  - "id"
+                type: "object"
+          description: "Record stored."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Validation failure."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Authentication required / invalid session."
+      summary: "Ingest a telemetry record."
+      tags:
+        - "Diagnostics"
+  /auth/device-tokens:
+    post:
+      description: "Mints a single-use paste/device token (5 min TTL). Only the SHA-256 hash is persisted; the plaintext code is returned exactly once. Authenticated via bearer token OR the httpOnly portal session cookie. The Obsidian plugin uses the returned code with POST /auth/exchange to obtain a full session."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                label:
+                  description: "Optional human-readable label for the device token."
+                  type: "string"
+              type: "object"
+        required: false
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    description: "One-time plaintext code (shown only here)."
+                    type: "string"
+                type: "object"
+          description: "Token minted."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Missing or invalid session."
+      summary: "Mint a single-use device token."
+      tags:
+        - "Auth"
+  /auth/exchange:
+    post:
+      description: "Exchanges a paste/device code for a full session token. Validates existence, single-use and 5-minute TTL, marks the token used, and creates a session row carrying the device label. Rate-limited to 5 attempts per minute per IP (brute-force bound)."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                code:
+                  type: "string"
+                deviceLabel:
+                  description: "Label recorded on the created session (shown in the account sessions list)."
+                  type: "string"
+              required:
+                - "code"
+              type: "object"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  token:
+                    description: "New session_ token."
+                    type: "string"
+                type: "object"
+          description: "Session created."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Missing code / invalid JSON."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Invalid, used, or expired code."
+        "429":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Too many exchange attempts."
+      summary: "Exchange a device code for a session."
+      tags:
+        - "Auth"
+  /auth/logout:
+    post:
+      description: "Revokes the caller's session (if authenticated) and clears the httpOnly portal session cookie. Alias: POST /account/logout. Idempotent: answering with {ok:true} and a cleared cookie even without a valid session."
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  ok:
+                    description: "Always true."
+                    type: "boolean"
+                type: "object"
+          description: "Logout processed."
+      summary: "Revoke the calling session (logout)."
+      tags:
+        - "Auth"
+  /blobs/batch-check:
+    post:
+      description: "Checks which of up to 500 hashes exist on the server (probes run concurrently) — replaces N individual HEAD checks. Chunked into requests of 500 by the client."
+      parameters:
+        - description: "Project key for the blob store."
+          in: "header"
+          name: "X-Project-ID"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/BatchCheckRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/BatchCheckResult"
+          description: "Existing / missing / resumable-chunked hashes."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Invalid or oversized hash list."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Unauthorized."
+      summary: "Batch blob existence check."
+      tags:
+        - "Blobs"
+  /blobs/manifest:
+    get:
+      description: "Lists stored blobs (content-addressed by SHA-256). Serves the structure-sync reconciliation of the plugin BlobClient. Raw transfer routes sit behind the blob rate limiter (the shared JSON limiter is bypassed)."
+      parameters:
+        - description: "Max entries (server default caps the page)."
+          in: "query"
+          name: "limit"
+          required: false
+          schema:
+            type: "integer"
+        - description: "Page offset into the full (hash-sorted) manifest."
+          in: "query"
+          name: "offset"
+          required: false
+          schema:
+            type: "integer"
+        - description: "Project scoping (shared with the other project routes)."
+          in: "header"
+          name: "X-Project-ID"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/BlobManifest"
+          description: "A page of the manifest (bounded work per request — the full-store sum would cost one statSync per blob)."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Unauthorized."
+      summary: "List the blob manifest."
+      tags:
+        - "Blobs"
+  "/blobs/{hash}":
+    delete:
+      description: "Removes an unreferenced blob (client-driven GC). Protected referenced hashes must not be deleted; tombstoned hashes still keep a 1h grace before the vacuum can reclaim them. Exposed to every project member — a known production-hardening gap (no per-project upload quota either)."
+      parameters:
+        - description: "64-hex SHA-256."
+          in: "path"
+          name: "hash"
+          required: true
+          schema:
+            pattern: "^[a-fA-F0-9]{64}$"
+            type: "string"
+        - description: "Project key."
+          in: "header"
+          name: "X-Project-ID"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Blob deleted."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Unauthorized."
+        "404":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Blob not found."
+      summary: "Delete a blob (GC) — DESTRUCTIVE."
+      tags:
+        - "Blobs"
+    get:
+      description: "Streams the raw blob bytes. Supports HTTP Range requests (partial download). The client verifies sha256(response) === {hash}. Empty-blob rule: exactly one usability predicate (size>0 || hash===EMPTY_SHA256) gates 404 vs serve."
+      parameters:
+        - description: "64-hex SHA-256."
+          in: "path"
+          name: "hash"
+          required: true
+          schema:
+            pattern: "^[a-fA-F0-9]{64}$"
+            type: "string"
+        - description: "Byte range for partial download."
+          in: "header"
+          name: "Range"
+          required: false
+          schema:
+            type: "string"
+        - description: "Project key."
+          in: "header"
+          name: "X-Project-ID"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            application/octet-stream:
+              schema:
+                format: "binary"
+                type: "string"
+          description: "Blob bytes."
+        "206":
+          content:
+            application/octet-stream:
+              schema:
+                format: "binary"
+                type: "string"
+          description: "Partial content (Range request served)."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Unauthorized."
+        "404":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Blob not found (or unusable)."
+      summary: "Download a blob (raw binary, Range-capable)."
+      tags:
+        - "Blobs"
+    put:
+      description: "Streams the request body (application/octet-stream) into the content-addressed store; the server verifies sha256(body) === {hash} before persisting (F3: missing/invalid Content-Length is rejected). Single-blob size cap applies (BLOB_MAX_SINGLE_SIZE)."
+      parameters:
+        - description: "64-hex SHA-256 of the content (the blob id)."
+          in: "path"
+          name: "hash"
+          required: true
+          schema:
+            pattern: "^[a-fA-F0-9]{64}$"
+            type: "string"
+        - description: "Project key."
+          in: "header"
+          name: "X-Project-ID"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          application/octet-stream:
+            schema:
+              format: "binary"
+              type: "string"
+        required: true
+      responses:
+        "200":
+          description: "Blob stored (hash verified on the server side)."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Hash mismatch / invalid hash / size limit."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Unauthorized."
+      summary: "Upload a blob (raw binary)."
+      tags:
+        - "Blobs"
+  "/blobs/{hash}/chunks/{n}":
+    put:
+      description: "Uploads chunk {n} of a large blob (>= 16 MB uses chunked upload with resume). 0-based chunk index; each chunk is hashed/verified server side; per-chunk and total caps apply (BLOB_MAX_CHUNK_SIZE / BLOB_MAX_TOTAL_BYTES)."
+      parameters:
+        - description: "64-hex SHA-256 of the WHOLE blob."
+          in: "path"
+          name: "hash"
+          required: true
+          schema:
+            pattern: "^[a-fA-F0-9]{64}$"
+            type: "string"
+        - description: "Zero-based chunk index."
+          in: "path"
+          name: "n"
+          required: true
+          schema:
+            minimum: 0
+            type: "integer"
+        - description: "Project key."
+          in: "header"
+          name: "X-Project-ID"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          application/octet-stream:
+            schema:
+              format: "binary"
+              type: "string"
+        required: true
+      responses:
+        "200":
+          description: "Chunk stored."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Chunk too large / total-size overflow / invalid index."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Unauthorized."
+      summary: "Upload one chunk of a chunked blob."
+      tags:
+        - "Blobs"
+  "/blobs/{hash}/commit":
+    post:
+      description: "Completes a chunked upload: the server concatenates every present chunk, verifies the final sha256 === {hash}, and makes the blob visible (atomically; empty body)."
+      parameters:
+        - description: "64-hex SHA-256."
+          in: "path"
+          name: "hash"
+          required: true
+          schema:
+            pattern: "^[a-fA-F0-9]{64}$"
+            type: "string"
+        - description: "Project key."
+          in: "header"
+          name: "X-Project-ID"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "object"
+        required: false
+      responses:
+        "200":
+          description: "Blob finalized and hash-verified."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Missing chunks / hash mismatch."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Unauthorized."
+      summary: "Finalize a chunked upload."
+      tags:
+        - "Blobs"
+  "/blobs/{hash}/status":
+    get:
+      description: "Returns which chunks of an in-progress chunked upload are present so the client can resume exactly where it stopped (ChunkUploadStatus contract from blobTypes.ts)."
+      parameters:
+        - description: "64-hex SHA-256."
+          in: "path"
+          name: "hash"
+          required: true
+          schema:
+            pattern: "^[a-fA-F0-9]{64}$"
+            type: "string"
+        - description: "Project key."
+          in: "header"
+          name: "X-Project-ID"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ChunkUploadStatus"
+          description: "Upload status."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Unauthorized."
+      summary: "Query chunked-upload status (resume)."
+      tags:
+        - "Blobs"
+  /health:
+    get:
+      description: "Returns basic process stats (uptime, active WebSocket rooms, blob count, DB size) with no authentication required; used by load balancers/monitoring (FR-SERVER-011)."
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/HealthResponse"
+          description: "Health stats returned successfully."
+      summary: "Liveness health probe."
       tags:
         - "System"
+  /oidc/callback:
+    get:
+      description: "The IdP redirects here with the authorization code; the server exchanges it, provisions the user (profile picture claim initializes avatarUrl) and redirects/authenticates to the portal. Answers 404 when no real provider is configured."
+      parameters:
+        - description: "Authorization code from the IdP."
+          in: "query"
+          name: "code"
+          required: false
+          schema:
+            type: "string"
+        - in: "query"
+          name: "state"
+          required: false
+          schema:
+            type: "string"
+      responses:
+        "302":
+          description: "Redirect to the portal with the session cookie set."
+        "404":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "No real OIDC provider configured."
+      summary: "Real-OIDC authorization-code callback."
+      tags:
+        - "Auth"
+  /oidc/login:
+    get:
+      description: "With a real provider configured: redirects to the IdP authorization endpoint. Without one and with OIDC_DISABLE_MOCK_LOGIN set: fails closed with 503. Otherwise serves the mock login form HTML (dev deployments only). `redirect_uri` must be in the allow list (F1); `state` is echoed through."
+      parameters:
+        - description: "Opaque OIDC state echoed by the chosen flow."
+          in: "query"
+          name: "state"
+          required: false
+          schema:
+            type: "string"
+        - description: "Portal redirect target (allow-listed, F1)."
+          in: "query"
+          name: "redirect_uri"
+          required: false
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            text/html:
+              schema:
+                type: "string"
+          description: "Mock login form (HTML, dev-only)."
+        "302":
+          description: "Redirect to the real OIDC provider (or back to the portal after mock login POST)."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "redirect_uri is not allowed."
+        "503":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "No OIDC provider configured and mock disabled (fail closed, F2/P0)."
+      summary: "OIDC sign-in (mock form or provider redirect)."
+      tags:
+        - "Auth"
+    post:
+      description: "Form/URL-encoded submit of the mock login. Creates/updates the user, issues a session_ token (30 d), seeds a Default Project when needed, sets the httpOnly session cookie (the token never travels in the URL) and 302-redirects to redirect_uri. With a real provider configured this endpoint answers 405; with OIDC_DISABLE_MOCK_LOGIN it fails closed with 503."
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              properties:
+                email:
+                  description: "Defaults to user@example.com."
+                  type: "string"
+                name:
+                  description: "Defaults to \"Mock User\"."
+                  type: "string"
+                redirect_uri:
+                  description: "Must be allow-listed (F1)."
+                  type: "string"
+                userId:
+                  description: "Defaults to a generated user_ id."
+                  type: "string"
+              type: "object"
+        required: true
+      responses:
+        "302":
+          description: "Redirect to the portal with the session cookie set."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "redirect_uri is not allowed."
+        "405":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Real provider configured — use it instead of the mock (FR-AUTH-003)."
+        "503":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Mock disabled (fail closed)."
+      summary: "Mock OIDC login submit (dev-only)."
+      tags:
+        - "Auth"
   /openapi.yaml:
     get:
       responses:
@@ -520,6 +2023,69 @@ paths:
       summary: "Return the OpenAPI YAML document for this API."
       tags:
         - "System"
+  /projects:
+    get:
+      description: "Returns the project memberships (raw array) of the authenticated user. Auth: bearer token OR httpOnly portal session cookie."
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  type: "object"
+                type: "array"
+          description: "Project list returned (a bare JSON array)."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Missing or invalid session."
+      summary: "List the authenticated user's projects."
+      tags:
+        - "Projects"
+    post:
+      description: "Creates a project owned by the authenticated user; the user becomes the primary owner. Name is required (non-empty after trim). The created project entity is returned."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                name:
+                  description: "Project name (non-empty after trim)."
+                  type: "string"
+              required:
+                - "name"
+              type: "object"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ProjectData"
+          description: "Project created."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Invalid JSON or missing name."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Missing or invalid session."
+        "413":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Payload Too Large."
+      summary: "Create a new project."
+      tags:
+        - "Projects"
   /projects/doc-status:
     get:
       description: "Returns one entry per snapshot row of the project (globalId → byte length + row timestamp + canonical state hash) so ANY client — including a lone client with no peers — can compare its per-CRDT state against the server (the exchange source for smart-sync). The project is taken from the X-Project-ID header (same authenticated-worker flow as the other project endpoints)."
@@ -552,6 +2118,1150 @@ paths:
       summary: "Get per-document sync status for a project."
       tags:
         - "Projects"
+  "/projects/{projectId}/commits":
+    get:
+      description: "Lists commits (projection never includes manifest_json). Optional query filters: scope=note|vault and docId."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+        - description: "'note' | 'vault'."
+          in: "query"
+          name: "scope"
+          required: false
+          schema:
+            type: "string"
+        - description: "Filter to one document."
+          in: "query"
+          name: "docId"
+          required: false
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  "$ref": "#/components/schemas/CommitInfo"
+                type: "array"
+          description: "Filtered commit list."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Unauthorized."
+      summary: "List commits (optional scope/docId filter)."
+      tags:
+        - "History"
+    post:
+      description: "Records a commit (scope 'note' = one doc with optional seq; scope 'vault' = whole-vault manifest built from the structure Y.Doc). The note ownership gate (docId must exist in the project structure) runs inside CommitService in ONE transaction (TOCTOU-closed)."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                docId:
+                  description: "Note-scope only: docId that must exist in the project structure."
+                  type: "string"
+                name:
+                  type: "string"
+                scope:
+                  description: "'note' | 'vault'."
+                  type: "string"
+                seq:
+                  description: "Note-scope only: defaults to the doc max seq."
+                  type: "integer"
+              required:
+                - "scope"
+                - "name"
+              type: "object"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: "object"
+          description: "Commit recorded (note scope returns the CommitInfo; vault scope also returns the built manifest)."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "commit scope must be 'note' or 'vault' (or ownership/seq validation failure)."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Unauthorized."
+      summary: "Create a note or vault commit."
+      tags:
+        - "History"
+  "/projects/{projectId}/commits/{commitId}":
+    patch:
+      description: "Renames a commit (non-empty string name required; OPTIONS is accepted as CORS preflight)."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+        - in: "path"
+          name: "commitId"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                name:
+                  description: "Non-empty commit name."
+                  type: "string"
+              required:
+                - "name"
+              type: "object"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CommitInfo"
+          description: "Renamed commit returned."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "commit requires a non-empty name."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Unauthorized."
+      summary: "Rename a commit."
+      tags:
+        - "History"
+  "/projects/{projectId}/commits/{commitId}/manifest":
+    get:
+      description: "Returns the manifest of a vault commit (notes = markdown/UUID docIds, blobs = sha256: docIds / contentHashes) — the restore window on the client side."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+        - in: "path"
+          name: "commitId"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: "object"
+          description: "Manifest returned."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Unauthorized."
+        "404":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Commit not found."
+      summary: "Commit manifest."
+      tags:
+        - "History"
+  "/projects/{projectId}/docs/{docId}/checkpoints/{checkpointSeq}":
+    get:
+      description: "Returns the raw checkpoint snapshot blob (404 → the replay window expands to seq 0 client-side). Binary route (application/octet-stream)."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+        - in: "path"
+          name: "docId"
+          required: true
+          schema:
+            type: "string"
+        - description: "Checkpoint sequence (must be a non-negative integer)."
+          in: "path"
+          name: "checkpointSeq"
+          required: true
+          schema:
+            minimum: 0
+            type: "integer"
+      responses:
+        "200":
+          content:
+            application/octet-stream:
+              schema:
+                format: "binary"
+                type: "string"
+          description: "Checkpoint blob."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Invalid checkpointSeq."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Unauthorized."
+        "404":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Checkpoint not found."
+      summary: "Checkpoint snapshot blob."
+      tags:
+        - "History"
+  "/projects/{projectId}/docs/{docId}/chunks":
+    get:
+      description: "Reads the update range [fromSeq, toSeq] clamped to the doc actual [minSeq, maxSeq] and returns the encoded binary chunk payload (GET returns application/octet-stream; no history / empty range counts 0; FAIL-OPEN on seq gaps on the client side)."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+        - in: "path"
+          name: "docId"
+          required: true
+          schema:
+            type: "string"
+        - description: "Inclusive lower bound (defaults to the doc min seq)."
+          in: "query"
+          name: "fromSeq"
+          required: false
+          schema:
+            minimum: 0
+            type: "integer"
+        - description: "Inclusive upper bound (defaults to the doc max seq)."
+          in: "query"
+          name: "toSeq"
+          required: false
+          schema:
+            minimum: 0
+            type: "integer"
+      responses:
+        "200":
+          content:
+            application/octet-stream:
+              schema:
+                format: "binary"
+                type: "string"
+          description: "Encoded binary chunk payload."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Bad request."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Unauthorized."
+      summary: "Raw Yjs update deltas (chunked binary contract)."
+      tags:
+        - "History"
+  "/projects/{projectId}/docs/{docId}/timeline":
+    get:
+      description: "Returns the update timeline index (seq range, checkpoints, commits, attributed users) for a document. URL-param route served by the history handler (regex-direct; auth bearer + X-Project-ID is NOT bypassed, URL project must match the header)."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+        - in: "path"
+          name: "docId"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/TimelineIndex"
+          description: "Timeline index."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Bad request."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Unauthorized."
+        "404":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Unknown doc."
+      summary: "History timeline index for one document."
+      tags:
+        - "History"
+  "/projects/{projectId}/vcs/blob":
+    get:
+      description: "Returns the file content at commitSha (default HEAD). `path` is REQUIRED (400 otherwise; assertSafeRepoPath). Returns the content as plain text."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+        - description: "Revision (default 'HEAD'; assertSafeRev)."
+          in: "query"
+          name: "commitSha"
+          required: false
+          schema:
+            type: "string"
+        - description: "Repo-relative file path (assertSafeRepoPath)."
+          in: "query"
+          name: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            text/plain:
+              schema:
+                type: "string"
+          description: "File content."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Project mismatch."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Unauthorized."
+      summary: "File content at a revision (raw text)."
+      tags:
+        - "VCS"
+  "/projects/{projectId}/vcs/branches":
+    get:
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  "$ref": "#/components/schemas/VcsBranch"
+                type: "array"
+          description: "Branch list."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Project mismatch."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Unauthorized."
+      summary: "List branches."
+      tags:
+        - "VCS"
+    post:
+      description: "Creates a branch. Name is required (assertValidBranchName); startPoint optional (assertSafeRev)."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/VcsBranchRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsOperationAck"
+          description: "Branch created (returns {ok:true} + updated status)."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Branch name is required / invalid."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Unauthorized."
+        "403":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Viewer role cannot mutate."
+      summary: "Create a branch."
+      tags:
+        - "VCS"
+  "/projects/{projectId}/vcs/branches/checkout":
+    post:
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/VcsCheckoutRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsOperationAck"
+          description: "Checked out (returns {ok, status})."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Branch name is required / invalid."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Unauthorized."
+        "403":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Viewer role cannot mutate."
+      summary: "Checkout a branch."
+      tags:
+        - "VCS"
+  "/projects/{projectId}/vcs/branches/merge":
+    post:
+      description: "Dual-writer valve beyond the Reconciler/applier guards (marked experimental)."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/VcsMergeRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsOperationAck"
+          description: "Merged (returns {ok, status})."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Branch name is required / invalid."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Unauthorized."
+        "403":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Viewer role cannot mutate."
+        "409":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Merge conflict (VcsConflictError)."
+      summary: "Merge a branch."
+      tags:
+        - "VCS"
+  "/projects/{projectId}/vcs/commit":
+    post:
+      description: "Commits the current CRDT projection into the project repo. Viewer sessions get 403 (read-only role)."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/VcsCommitRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsCommitDetails"
+          description: "Commit created."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Project mismatch."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Unauthorized."
+        "403":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Viewer role cannot mutate."
+      summary: "Create a git commit from the CRDT state."
+      tags:
+        - "VCS"
+  "/projects/{projectId}/vcs/commits":
+    get:
+      description: "Commit history of the projection repo."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+        - description: "Maximum commits to return (default 50)."
+          in: "query"
+          name: "maxCount"
+          required: false
+          schema:
+            default: 50
+            type: "integer"
+        - description: "Restrict the log to a branch (assertSafeRev)."
+          in: "query"
+          name: "branch"
+          required: false
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  "$ref": "#/components/schemas/VcsCommit"
+                type: "array"
+          description: "Commit list."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Project mismatch."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Unauthorized."
+      summary: "Commit log."
+      tags:
+        - "VCS"
+  "/projects/{projectId}/vcs/commits/{commitSha}":
+    get:
+      description: "Detailed info of a single commit (files, optional manifest)."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+        - in: "path"
+          name: "commitSha"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsCommitDetails"
+          description: "Commit details."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Project mismatch."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Unauthorized."
+        "404":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Unknown commit / revision."
+      summary: "Commit details."
+      tags:
+        - "VCS"
+  "/projects/{projectId}/vcs/diff":
+    get:
+      description: "Diff between two revisions. from/to validated by assertSafeRev; path filters to one repo path (assertSafeRepoPath). The worktree diff (no from/to) invokes syncLiveStateToGit which mutates disk - viewer sessions get 403 exactly for that case. Returns the DIFF as plain text (200, text/plain)."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+        - in: "query"
+          name: "from"
+          required: false
+          schema:
+            type: "string"
+        - in: "query"
+          name: "to"
+          required: false
+          schema:
+            type: "string"
+        - in: "query"
+          name: "path"
+          required: false
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            text/plain:
+              schema:
+                type: "string"
+          description: "Diff output."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Project mismatch / invalid rev."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Unauthorized."
+        "403":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Viewer role cannot inspect the uncommitted live worktree."
+      summary: "Diff between revisions (raw unified text)."
+      tags:
+        - "VCS"
+  "/projects/{projectId}/vcs/remotes":
+    get:
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  "$ref": "#/components/schemas/VcsRemote"
+                type: "array"
+          description: "Remote list."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Project mismatch."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Unauthorized."
+      summary: "List remotes."
+      tags:
+        - "VCS"
+    post:
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/VcsRemoteRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                properties:
+                  ok:
+                    type: "boolean"
+                type: "object"
+          description: "Remote added."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "name and url are required / validation failed."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Unauthorized."
+        "403":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Viewer role cannot mutate."
+      summary: "Add a remote."
+      tags:
+        - "VCS"
+  "/projects/{projectId}/vcs/remotes/fetch":
+    post:
+      description: "Fetches `remote` (default 'origin'; assertSafeRemoteName)."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/VcsPushFetchRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: "object"
+          description: "Fetch result."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Project mismatch / invalid remote."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Unauthorized."
+      summary: "Fetch from a remote."
+      tags:
+        - "VCS"
+  "/projects/{projectId}/vcs/remotes/push":
+    post:
+      description: "Pushes `branch` (or the current HEAD) to `remote` (default 'origin'; assertSafeRemoteName + assertValidBranchName)."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/VcsPushFetchRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: "object"
+          description: "Push result."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Project mismatch / invalid remote."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Unauthorized."
+      summary: "Push to a remote."
+      tags:
+        - "VCS"
+  "/projects/{projectId}/vcs/remotes/{name}":
+    delete:
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+        - description: "Remote name (assertSafeRemoteName)."
+          in: "path"
+          name: "name"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  ok:
+                    type: "boolean"
+                type: "object"
+          description: "Remote removed."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Invalid remote name."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Unauthorized."
+        "403":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Viewer role cannot mutate."
+      summary: "Remove a remote."
+      tags:
+        - "VCS"
+  "/projects/{projectId}/vcs/restore":
+    post:
+      description: "Restores a commit (or a single file with `path`). RESTART-gated follow-up: restore must clear tombstoneExpiresAt/deletedAt on the active flip and stop raw snapshotRepo.upsert — documented as OPEN before merge."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/VcsRestoreRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: "object"
+          description: "Restored."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Invalid revision (assertSafeRev rejects `-`-prefixed/whitespace revs)."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Unauthorized."
+        "403":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Viewer role cannot mutate."
+      summary: "Restore a historical state."
+      tags:
+        - "VCS"
+  "/projects/{projectId}/vcs/status":
+    get:
+      description: "Git status (branch, head, ahead/behind, uncommitted files, branches, tags, remotes). Experimental one-way CRDT→Git projection surface."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsStatus"
+          description: "Status."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Project mismatch."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Unauthorized."
+      summary: "Working tree + repository status."
+      tags:
+        - "VCS"
+  "/projects/{projectId}/vcs/tags":
+    get:
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  "$ref": "#/components/schemas/VcsTag"
+                type: "array"
+          description: "Tag list."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Project mismatch."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Unauthorized."
+      summary: "List tags."
+      tags:
+        - "VCS"
+    post:
+      description: "Tag an optional commitSha (assertSafeRev); name required (assertValidTagName)."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/VcsTagRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                properties:
+                  ok:
+                    type: "boolean"
+                type: "object"
+          description: "Tag created."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Tag name is required / invalid."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Unauthorized."
+        "403":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Viewer role cannot mutate."
+      summary: "Create a tag."
+      tags:
+        - "VCS"
+  "/projects/{projectId}/vcs/tags/{name}":
+    delete:
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+        - description: "Tag name (assertValidTagName)."
+          in: "path"
+          name: "name"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  ok:
+                    type: "boolean"
+                type: "object"
+          description: "Tag deleted."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Invalid tag name."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Unauthorized."
+        "403":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Viewer role cannot mutate."
+      summary: "Delete a tag."
+      tags:
+        - "VCS"
+  "/projects/{projectId}/vcs/tree":
+    get:
+      description: "Entries of the repository tree at commitSha (default HEAD), optionally filtered to one tree path."
+      parameters:
+        - in: "path"
+          name: "projectId"
+          required: true
+          schema:
+            type: "string"
+        - description: "Revision (default 'HEAD'; assertSafeRev)."
+          in: "query"
+          name: "commitSha"
+          required: false
+          schema:
+            type: "string"
+        - description: "Sub-tree path (assertSafeRepoPath)."
+          in: "query"
+          name: "path"
+          required: false
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  "$ref": "#/components/schemas/VcsTreeEntry"
+                type: "array"
+          description: "Tree entries."
+        "400":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Project mismatch."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VcsError"
+          description: "Unauthorized."
+      summary: "Tree listing at a revision."
+      tags:
+        - "VCS"
   /snapshot/get:
     post:
       description: "Get the newest snapshot for a globalId in the project. Snapshots are mutable and updated incrementally by Hocuspocus."

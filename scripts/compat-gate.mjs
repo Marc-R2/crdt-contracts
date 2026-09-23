@@ -25,6 +25,7 @@
  * Zero network, zero credentials, no data leaves the machine.
  */
 import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import path from 'node:path';
@@ -102,6 +103,32 @@ if (manifest.contracts !== contractsPkg.version) {
 	);
 }
 
+// OpenAPI contract pin (decision C-6): the manifest carries the sha256 of the
+// committed openapi.yaml so consumers can pin the REST contract. This gate
+// verifies the pin against the ACTUAL committed file (cheap, no jsonnet
+// render) — a wrong 64-hex pin FAILS here. The complementary half (committed
+// file == jsonnet render) lives in `check:openapi`; together they prove
+// pin == render without duplicating the expensive render.
+if (!manifest.openapiSha256) {
+	errors.push('compat-manifest.json is missing the "openapiSha256" pin (C-6)');
+} else if (!/^[0-9a-f]{64}$/.test(manifest.openapiSha256)) {
+	errors.push(`compat-manifest.json openapiSha256 is not a 64-hex sha256: ${manifest.openapiSha256}`);
+} else {
+	const yamlPath = path.join(contractsDir, 'openapi', 'openapi.yaml');
+	try {
+		const actual = createHash('sha256').update(readFileSync(yamlPath)).digest('hex');
+		if (actual !== manifest.openapiSha256) {
+			errors.push(
+				`openapiSha256 mismatch: compat-manifest.json pin=${manifest.openapiSha256} ` +
+				`but the committed openapi/openapi.yaml hashes to ${actual} — re-pin it ` +
+				`(and re-render) in the same commit as the contract change`,
+			);
+		}
+	} catch {
+		errors.push(`openapiSha256 pin set but openapi/openapi.yaml is missing/unreadable at ${yamlPath}`);
+	}
+}
+
 if (errors.length > 0) {
 	console.error('[compat-gate] RED — protocol contract drift detected:');
 	for (const e of errors) console.error(`  - ${e}`);
@@ -110,5 +137,6 @@ if (errors.length > 0) {
 
 console.log(
 	`[compat-gate] GREEN — contracts ${manifest.contracts}, protocolVersion ${exported.value} ` +
-	`(read via ${exported.via}); the compat pin matches the exported contract.`,
+	`(read via ${exported.via}), openapiSha256 pinned ` +
+	`(${String(manifest.openapiSha256).slice(0, 12)}…); the compat pin matches the exported contract.`,
 );

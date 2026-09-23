@@ -1,5 +1,8 @@
-# Product test gate for the wire-contracts package: build -> contract tests ->
-# protocol compat gate. No submodules, no registry auth, no secrets.
+# Product test gate for the wire-contracts package: build -> OpenAPI gate
+# (drift + conformance lint) -> contract tests -> protocol compat gate. No
+# submodules, no registry auth, no secrets. (The jsonnet render costs ~100 s
+# and the native binding build needs CMake — hence the explicit setup + wider
+# timeouts.)
 name: Tests
 
 on:
@@ -19,7 +22,7 @@ concurrency:
 jobs:
     test:
         runs-on: ubuntu-latest
-        timeout-minutes: 15
+        timeout-minutes: 25
 
         steps:
             -   uses: actions/checkout@v4
@@ -30,17 +33,37 @@ jobs:
                     node-version: '22'
                     cache: 'npm'
 
+            -   name: Setup CMake
+                # @hanazuki/node-jsonnet compiles a native binding via
+                # cmake-js; the runner image's preinstalled CMake is not a
+                # contract we want to depend on implicitly.
+                uses: jwlawson/actions-setup-cmake@v2.2.0
+                with:
+                    cmake-version: '3.31.x'
+
             -   name: Install dependencies
-                timeout-minutes: 5
+                # Cold native build (cmake-js) needs headroom.
+                timeout-minutes: 10
                 run: npm ci
 
             -   name: Build
                 timeout-minutes: 5
                 run: npm run build
 
-            -   name: Test
+            -   name: OpenAPI gate (drift + conformance lint)
+                # check:openapi renders openapi/src/** with the pinned jsonnet
+                # devDependency, fails when the committed openapi/openapi.yaml
+                # or the openapiSha256 pin drifts, then lints the contract
+                # (Redocly) so generator-breaking defects (B1 optional path
+                # param, M2 nullable-without-type, dead schemas) fail too.
                 timeout-minutes: 10
-                run: npm test
+                run: npm run check:openapi
+
+            -   name: Test
+                # The openapiPipeline drift-copy test re-renders jsonnet
+                # (~2 min) — redundant with the dedicated OpenAPI gate above.
+                timeout-minutes: 5
+                run: npm test -- --exclude tests/unit/contracts/openapiPipeline.test.ts
 
             -   name: Compatibility gate
                 # Fails on drift between compat-manifest.json and the

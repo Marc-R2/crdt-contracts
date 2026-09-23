@@ -1,0 +1,26 @@
+# Redocly conformance config for the rendered REST contract.
+#
+# WHY this file exists (in addition to check:openapi's DRIFT gate): drift only
+# proves "the committed yaml equals what the jsonnet renders". It says nothing
+# about whether the contract is CORRECT. A defect can be rendered faithfully
+# and still produce wrong generated code (the B1 bug: an optional path
+# parameter on a collection path made openapi-generator emit a `:id` route it
+# never created). The lint rules below are the CONFORMANCE half of the gate.
+#
+# `recommended` already treats these as errors; they are pinned explicitly so a
+# future Redocly default change cannot silently downgrade them:
+extends:
+  - recommended
+rules:
+  # A path parameter declared but not present as {template} in the path, or an
+  # optional path parameter — breaks generated route wiring (B1).
+  path-parameters-defined: error
+  # `nullable: true` without a sibling `type` loses the real union in codegen (M2).
+  nullable-type-sibling: error
+  # Dead schemas never reach generated models; they only confuse readers (m2).
+  no-unused-components: error
+  # PRE-EXISTING / TRACKED (n2): the contract carries no operationIds, so
+  # generators derive method names from path+method heuristics (the committed
+  # NestJS module was generated the same way). Kept as a warning so the gate is
+  # green today; adding operationIds would improve Phase-B naming.
+  operation-operationId: warn
