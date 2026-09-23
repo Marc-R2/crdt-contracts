@@ -82,8 +82,12 @@ components:
           pattern: "^bug-[a-zA-Z0-9_-]{1,64}$"
           type: "string"
         logs:
-          description: "String or string array."
-          nullable: true
+          description: "String or string array (validator: string OR array of strings; null is rejected)."
+          oneOf:
+            - type: "string"
+            - items:
+                type: "string"
+              type: "array"
         platform:
           nullable: true
           type: "string"
@@ -1307,28 +1311,21 @@ paths:
         - "System"
   /api/bug-reports:
     delete:
-      description: "User-owned deletion: without an id path component every report of the calling user is removed; with `/api/bug-reports/{id}` only that one (user-owned)."
-      parameters:
-        - description: "Optional report id (user-owned delete); omitted = delete all own reports."
-          in: "path"
-          name: "id"
-          required: false
-          schema:
-            type: "string"
+      description: "User-owned deletion: removes EVERY bug report of the calling user. Use `DELETE /api/bug-reports/{id}` to delete one specific report."
       responses:
         "200":
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/OkAckResponse"
-          description: "Deletion result."
+          description: "Deletion result (deleted = number of rows removed)."
         "401":
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
           description: "Authentication required."
-      summary: "Delete bug reports (GDPR)."
+      summary: "Delete all of the caller's bug reports (GDPR)."
       tags:
         - "Diagnostics"
     post:
@@ -1373,6 +1370,32 @@ paths:
                 "$ref": "#/components/schemas/Error"
           description: "Report payload exceeds 512 KB."
       summary: "Submit a bug report."
+      tags:
+        - "Diagnostics"
+  "/api/bug-reports/{id}":
+    delete:
+      description: "User-owned deletion of a single report: the server derives the id from the path subpath (`/api/bug-reports/` prefix stripped) and scopes the DELETE to the calling user (a foreign/unknown id removes 0 rows and still answers 200)."
+      parameters:
+        - description: "Report id to delete (user-owned)."
+          in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/OkAckResponse"
+          description: "Deletion result (deleted = 1 when the report existed and belonged to the caller, else 0)."
+        "401":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Authentication required."
+      summary: "Delete one bug report by id (GDPR)."
       tags:
         - "Diagnostics"
   /api/telemetry:

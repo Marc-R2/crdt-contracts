@@ -18,8 +18,11 @@
           clientVersion: { type: 'string', nullable: true },
           platform: { type: 'string', nullable: true },
           logs: {
-            description: 'String or string array.',
-            nullable: true,
+            description: 'String or string array (validator: string OR array of strings; null is rejected).',
+            oneOf: [
+              { type: 'string' },
+              { type: 'array', items: { type: 'string' } },
+            ],
           },
           systemInfo: { type: 'object', nullable: true },
         },
@@ -69,14 +72,28 @@
       },
       delete: {
         tags: ['Diagnostics'],
-        summary: 'Delete bug reports (GDPR).',
-        description: 'User-owned deletion: without an id path component every report of the calling user is removed; with `/api/bug-reports/{id}` only that one (user-owned).',
+        summary: 'Delete all of the caller\'s bug reports (GDPR).',
+        description: 'User-owned deletion: removes EVERY bug report of the calling user. Use `DELETE /api/bug-reports/{id}` to delete one specific report.',
+        responses: {
+          '200': {
+            description: 'Deletion result (deleted = number of rows removed).',
+            content: { 'application/json': { schema: { "$ref": '#/components/schemas/OkAckResponse' } } },
+          },
+          '401': { description: 'Authentication required.', content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } } },
+        },
+      },
+    },
+    '/api/bug-reports/{id}': {
+      delete: {
+        tags: ['Diagnostics'],
+        summary: 'Delete one bug report by id (GDPR).',
+        description: 'User-owned deletion of a single report: the server derives the id from the path subpath (`/api/bug-reports/` prefix stripped) and scopes the DELETE to the calling user (a foreign/unknown id removes 0 rows and still answers 200).',
         parameters: [
-          { name: 'id', 'in': 'path', required: false, description: 'Optional report id (user-owned delete); omitted = delete all own reports.', schema: { type: 'string' } },
+          { name: 'id', 'in': 'path', required: true, description: 'Report id to delete (user-owned).', schema: { type: 'string' } },
         ],
         responses: {
           '200': {
-            description: 'Deletion result.',
+            description: 'Deletion result (deleted = 1 when the report existed and belonged to the caller, else 0).',
             content: { 'application/json': { schema: { "$ref": '#/components/schemas/OkAckResponse' } } },
           },
           '401': { description: 'Authentication required.', content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } } },
