@@ -63,6 +63,9 @@ describe('openapi contract pipeline', () => {
 					cwd: tmp,
 					timeout: fiveMinMs,
 					encoding: 'utf8',
+					// The copy has no node_modules; the gate must resolve the
+					// jsonnet binding from the REAL repo (see check-openapi.mjs).
+					env: {...process.env, CONTRACTS_REPO_ROOT: repoRoot},
 					stdio: ['ignore', 'pipe', 'pipe'],
 				});
 				// Passing the gate with a hand-edited yaml is the failure mode.

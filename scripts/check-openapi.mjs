@@ -25,7 +25,13 @@ import {createRequire} from 'node:module';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const repoRootOf = (from) => {
+	// scripts/ lives directly under the repo root; the absolute script path
+	// (not `import.meta.url`) is authoritative because this file may be the
+	// COPIED drift-test twin running from a temp dir.
+	return path.resolve(path.dirname(process.argv[1]), '..');
+};
+const repoRoot = repoRootOf();
 const yamlPath = path.join(repoRoot, 'openapi', 'openapi.yaml');
 const srcPath = path.join(repoRoot, 'openapi', 'src', 'openapi.jsonnet');
 const libDir = path.join(repoRoot, 'openapi', 'src', 'lib');
@@ -35,7 +41,15 @@ const errors = [];
 const sha256 = (file) => createHash('sha256').update(readFileSync(file)).digest('hex');
 
 // 1. Render into a throwaway copy (never touching the working tree).
-const require = createRequire(import.meta.url);
+// The binding must be resolved relative to the REAL checkout (which has
+// node_modules) even when this script runs from the drift-test copy —
+// resolve through the parent's package.json walking up until a devDep
+// hit; the pragmatic anchor is the ORIGINAL repo root passed via
+// env CONTRACTS_REPO_ROOT by the drift test, falling back to this dir.
+const anchorDir = process.env.CONTRACTS_REPO_ROOT
+	? path.resolve(process.env.CONTRACTS_REPO_ROOT)
+	: repoRoot;
+const require = createRequire(path.join(anchorDir, 'package.json'));
 const {Jsonnet} = require('@hanazuki/node-jsonnet');
 const rendered = await new Jsonnet()
 	.setMaxStack(6000)
