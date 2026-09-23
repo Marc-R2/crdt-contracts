@@ -350,10 +350,6 @@ components:
           description: "Primary owner userId."
           type: "string"
       type: "object"
-    ProjectId:
-      description: "Project ID (UUID v4)."
-      format: "uuid"
-      type: "string"
     ProjectMember:
       properties:
         addedBy:
