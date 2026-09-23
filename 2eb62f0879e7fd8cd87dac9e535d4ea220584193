@@ -1,0 +1,2 @@
+Context & rationale: strict-review needs-changes on PR #1. B1 reproduced against openapi-generator 7.25.0; M2 reproduced as 'logs?: any | null'. Render verified byte-identical to the brew jsonnet CLI v0.22.0 output. Route-coverage re-checked: 67/67 served operations documented (minus the deliberate /portal/asset/* exclusion and the /account/device-tokens + /account/logout aliases).
+Privacy & security: spec-only change; the bug-report route now documents the user-scoped delete (WHERE id=? AND user_id=?) instead of implying a collection-level id; zero egress, no credentials.
