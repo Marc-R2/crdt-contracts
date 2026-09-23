@@ -37,7 +37,7 @@ This repository consumes **no** sibling repository and has no submodules.
 | `src/vcs.ts` | Git/VCS domain types shared by plugin and server. |
 | `src/protocol.ts` | `PROTOCOL_VERSION` — the single integer pinning room-name/entry-schema compatibility. |
 | `src/index.ts` | The public surface (re-exports all of the above). |
-| `openapi/` | OpenAPI 3 source (`*.jsonnet`) and the generated `openapi.yaml` + Swagger UI assets. |
+| `openapi/` | OpenAPI 3 pipeline: jsonnet sources (`src/**`, the edit targets) and the GENERATED `openapi.yaml` (never hand-edit; `build:openapi` re-renders, `check:openapi` gates drift) + Swagger UI assets. |
 | `compat-manifest.json` | `{ "contracts": "<version>", "protocolVersion": <n> }` — the consumer-facing compatibility pin. |
 | `tests/unit/contracts/` | Contract tests (vitest): wire surface, implementation-free guard, `compat:gate` green + drift proof. |
 
@@ -84,7 +84,7 @@ CI job before the Phase-0.5 red/green auth proof has passed.
   (`node -e "require('./dist/index.js')"`), and `npm test` runs the re-rooted contract tests
   (vitest) green against the repo-local `compat:gate`. See [`docs/STATUS.md`](docs/STATUS.md).
 - **Open follow-ups:** release tag + consumer pin (split-plan D-1, blocked on `SUBMODULES_TOKEN`)
-  and wiring the `openapi/` generation/lint command.
+  and the Phase-B/C consumer generation (server module / plugin client) from the rendered contract.
 
 ## Sibling repositories
 
