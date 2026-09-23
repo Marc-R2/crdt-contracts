@@ -1,0 +1,16 @@
+Context & Technical Rationale:
+Extraction moved packages/crdt-contracts/** to the repository root but left the
+test path arithmetic untouched, so contractsSurface/implementationFree read the
+wrong directory and the drift copy targeted a non-existent package. Fixed by
+re-rooting to '../../..' (repo root) and '../../../src'. compatGate.test.ts
+already used ../../../scripts/compat-gate.mjs, which is correct once the script
+exists. The drift test's contractSource is now repoRoot, so cpSync must not copy
+node_modules (hundreds of MB) or .git (history) into the temp dir; a basename
+filter keeps the throwaway copy to the package surface the gate actually reads.
+Test intent (independent pin is refutable without mutating the repo) is
+unchanged.
+
+Privacy & Security Guarantees:
+The drift test copies only local files into the OS temp dir and deletes them in
+afterEach. No network, no credentials. node_modules and .git are explicitly
+excluded from the copy, so no credential-bearing files (e.g. .npmrc) travel.
