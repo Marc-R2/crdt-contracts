@@ -1,5 +1,7 @@
-# Product test gate for the wire-contracts package: build -> contract tests ->
-# protocol compat gate. No submodules, no registry auth, no secrets.
+# Product test gate for the wire-contracts package: build -> OpenAPI drift
+# gate -> contract tests -> protocol compat gate. No submodules, no registry
+# auth, no secrets. (The jsonnet render costs ~100 s — hence the wider
+# timeouts.)
 name: Tests
 
 on:
@@ -19,7 +21,7 @@ concurrency:
 jobs:
     test:
         runs-on: ubuntu-latest
-        timeout-minutes: 15
+        timeout-minutes: 25
 
         steps:
             -   uses: actions/checkout@v4
@@ -38,9 +40,18 @@ jobs:
                 timeout-minutes: 5
                 run: npm run build
 
-            -   name: Test
+            -   name: OpenAPI drift gate
+                # Renders openapi/src/** with the pinned jsonnet devDependency
+                # and fails when the committed openapi/openapi.yaml or the
+                # openapiSha256 compat-manifest pin drifts.
                 timeout-minutes: 10
-                run: npm test
+                run: npm run check:openapi
+
+            -   name: Test
+                # The openapiPipeline drift-copy test re-renders jsonnet
+                # (~2 min) — redundant with the dedicated drift gate above.
+                timeout-minutes: 5
+                run: npm test -- --exclude tests/unit/contracts/openapiPipeline.test.ts
 
             -   name: Compatibility gate
                 # Fails on drift between compat-manifest.json and the
