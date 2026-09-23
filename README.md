@@ -37,20 +37,24 @@ This repository consumes **no** sibling repository and has no submodules.
 | `src/vcs.ts` | Git/VCS domain types shared by plugin and server. |
 | `src/protocol.ts` | `PROTOCOL_VERSION` — the single integer pinning room-name/entry-schema compatibility. |
 | `src/index.ts` | The public surface (re-exports all of the above). |
-| `openapi/` | OpenAPI 3 pipeline: jsonnet sources (`src/**`, the edit targets) and the GENERATED `openapi.yaml` (never hand-edit; `build:openapi` re-renders, `check:openapi` gates drift) + Swagger UI assets. |
+| `openapi/` | OpenAPI 3 pipeline: jsonnet sources (`src/**`, the edit targets) and the GENERATED `openapi.yaml` (never hand-edit; `build:openapi` re-renders, `check:openapi` gates drift + Redocly conformance) + Swagger UI assets. |
 | `compat-manifest.json` | `{ "contracts": "<version>", "protocolVersion": <n> }` — the consumer-facing compatibility pin. |
 | `tests/unit/contracts/` | Contract tests (vitest): wire surface, implementation-free guard, `compat:gate` green + drift proof. |
 
 ## Build & test
 
 ```bash
-npm install          # installs the vitest/typescript toolchain
+npm install          # installs the vitest/typescript toolchain + the native jsonnet binding
 npm run build        # tsc -p tsconfig.json -> dist/ (CommonJS + .d.ts)
+npm run build:openapi  # renders openapi/src/** -> openapi/openapi.yaml
+npm run check:openapi  # drift gate + Redocly conformance lint for the REST contract
 npm test             # builds, then runs the contract tests (vitest)
-npm run compat:gate  # builds, then verifies the compat-manifest pin vs the export
+npm run compat:gate  # builds, then verifies the compat-manifest pins vs the exports
 ```
 
-Requires Node.js >= 22. The package is type-checked and emitted successfully with TypeScript 5.8.
+Requires Node.js >= 22. `npm install`/`npm ci` compiles the `@hanazuki/node-jsonnet` native
+binding via `cmake-js`, so a **CMake + C toolchain is required on the install machine** (CI sets up
+CMake explicitly). The package is type-checked and emitted successfully with TypeScript 5.8.
 
 ### Version bumping contract
 
