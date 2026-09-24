@@ -1,3 +1,7 @@
 dist/
 node_modules/
 coverage/
+
+# macOS
+.DS_Store
+**/.DS_Store
