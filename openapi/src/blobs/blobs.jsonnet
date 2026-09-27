@@ -80,7 +80,13 @@ local rateLimited = {
             items: { type: 'integer' },
             description: 'Indexes of already-uploaded chunks (resume support).',
           },
-          chunkSize: { type: 'integer', description: 'Chunk size in bytes the server is CONFIGURED to accept (BLOB_MAX_CHUNK_SIZE; env-tunable, default 4 MiB) — a hardcoded default that ignores the configured cap is non-conformant.' },
+          // The field MEANING, not a claim about what the server currently
+          // does: the server publishes exactly this configured cap
+          // (`BlobService.getChunkStatus` → `Math.max(1, BLOB_MAX_CHUNK_SIZE)`).
+          // The earlier "a hardcoded default … is non-conformant" clause was
+          // written against a server defect that no longer exists and would
+          // have invited a "fix" to correct code.
+          chunkSize: { type: 'integer', description: 'Chunk size in bytes the server is CONFIGURED to accept (BLOB_MAX_CHUNK_SIZE; env-tunable, default 4 MiB).' },
           totalSize: { type: 'integer', description: 'Expected total blob size in bytes. Advisory before the commit: the client declares the authoritative totalSize in the commit body.' },
         },
       },

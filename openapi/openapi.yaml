@@ -103,7 +103,7 @@ components:
     ChunkUploadStatus:
       properties:
         chunkSize:
-          description: "Chunk size in bytes the server is CONFIGURED to accept (BLOB_MAX_CHUNK_SIZE; env-tunable, default 4 MiB) — a hardcoded default that ignores the configured cap is non-conformant."
+          description: "Chunk size in bytes the server is CONFIGURED to accept (BLOB_MAX_CHUNK_SIZE; env-tunable, default 4 MiB)."
           type: "integer"
         complete:
           description: "True when the blob is already committed and visible as a COMPLETE object (not merely assembled from chunks)."

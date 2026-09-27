@@ -145,16 +145,22 @@ describe('blob REST surface matches the served contract', () => {
 		expect(op.description ?? '').toMatch(/BLOB_MAX_BATCH_HASHES/);
 	});
 
-	it('states the intended ChunkUploadStatus semantics (the server deviates, tracked separately)', () => {
+	it('states the INTENDED ChunkUploadStatus semantics, not a claim about the server', () => {
 		const status = spec.components.schemas.ChunkUploadStatus.properties as Record<
 			string,
 			{description?: string}
 		>;
-		// chunkSize must name the CONFIGURED cap; the server currently
-		// publishes a hardcoded default that ignores BLOB_MAX_CHUNK_SIZE.
+		// chunkSize names the CONFIGURED cap — the MEANING of the field. The
+		// server already publishes the configured BLOB_MAX_CHUNK_SIZE
+		// (BlobService.getChunkStatus), so no claim about a live deviation may
+		// survive here: a pinned test that asserts a non-conformance which is
+		// not there teaches the next engineer to "fix" a correct server, or to
+		// weaken the contract back to the stale premise.
 		expect(status.chunkSize.description).toMatch(/BLOB_MAX_CHUNK_SIZE/);
-		// totalChunks must name the TOTAL; the server currently answers
-		// presentChunks.length, which is the resume set, not the total.
+		expect(status.chunkSize.description).not.toMatch(/hardcoded|non-conformant/i);
+		// totalChunks names the TOTAL, and says which value is only the resume
+		// set. The server's presentChunks.length fallback (no ?totalSize
+		// declared) is its own DOCUMENTED behaviour, not a defect to chase.
 		expect(status.totalChunks.description).toMatch(/total/i);
 		expect(status.totalChunks.description).toMatch(/presentChunks/);
 	});
