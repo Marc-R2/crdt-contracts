@@ -3,11 +3,11 @@ components:
     BatchCheckRequest:
       properties:
         hashes:
-          description: "Up to 500 blob hashes per request; larger sets are chunked by the client."
+          description: "Blob hashes to probe. Server cap: BLOB_MAX_BATCH_HASHES (env-tunable, default 5000); a longer list is rejected with 400. The reference client chunks larger sets into requests of 500 (its own MAX_BATCH_SIZE, not a server limit)."
           items:
             description: "64-hex SHA-256 blob hash."
             type: "string"
-          maxItems: 500
+          maxItems: 5000
           type: "array"
       required:
         - "hashes"
@@ -103,10 +103,10 @@ components:
     ChunkUploadStatus:
       properties:
         chunkSize:
-          description: "Chunk size in bytes."
+          description: "Chunk size in bytes the server is CONFIGURED to accept (BLOB_MAX_CHUNK_SIZE; env-tunable, default 4 MiB) — a hardcoded default that ignores the configured cap is non-conformant."
           type: "integer"
         complete:
-          description: "True once every chunk is uploaded and the upload is ready to commit."
+          description: "True when the blob is already committed and visible as a COMPLETE object (not merely assembled from chunks)."
           type: "boolean"
         presentChunks:
           description: "Indexes of already-uploaded chunks (resume support)."
@@ -114,9 +114,10 @@ components:
             type: "integer"
           type: "array"
         totalChunks:
+          description: "Total number of chunks the upload consists of — the count the client passes in the commit request. Must NOT repeat presentChunks.length (the resume set, which is a lower bound until the commit declares the real total)."
           type: "integer"
         totalSize:
-          description: "Expected total blob size in bytes."
+          description: "Expected total blob size in bytes. Advisory before the commit: the client declares the authoritative totalSize in the commit body."
           type: "integer"
       required:
         - "complete"
@@ -777,7 +778,7 @@ openapi: "3.0.2"
 paths:
   /:
     get:
-      description: "Returns basic information about the CRDT Sync Server for health checks."
+      description: "Returns basic information about the CRDT Sync Server for health checks. The route sits behind the SHARED REST rate limiter and the REST dispatcher, so a probe can also be answered with 429 or 5xx — a client MUST treat any non-2xx answer as \"server unreachable\" and retry with backoff, never as a protocol mismatch."
       responses:
         "200":
           content:
@@ -785,6 +786,18 @@ paths:
               schema:
                 "$ref": "#/components/schemas/InfoResponse"
           description: "Server info returned successfully."
+        "429":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Too Many Requests (shared REST limiter RATE_LIMIT_MAX_PER_WINDOW, default 300 per window per IP and per project when X-Project-ID is sent, 0 = disabled). The response carries the CORS header block but NO Retry-After header, so the client must apply its own backoff."
+        "500":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Internal Server Error — generic body, no internals leaked (the REST dispatcher maps every unmapped error to 500)."
       summary: "Return basic server information."
       tags:
         - "System"
@@ -1565,7 +1578,7 @@ paths:
         - "Auth"
   /blobs/batch-check:
     post:
-      description: "Checks which of up to 500 hashes exist on the server (probes run concurrently) — replaces N individual HEAD checks. Chunked into requests of 500 by the client."
+      description: "Checks which of the submitted hashes exist on the server (probes run concurrently) — replaces N individual HEAD checks. The server accepts up to BLOB_MAX_BATCH_HASHES hashes per request (env-tunable, default 5000) and answers 400 above that; the reference client chunks larger sets into requests of 500 (its own MAX_BATCH_SIZE, not a server limit)."
       parameters:
         - description: "Project key for the blob store."
           in: "header"
@@ -1598,12 +1611,18 @@ paths:
               schema:
                 "$ref": "#/components/schemas/Error"
           description: "Unauthorized."
+        "429":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Rate limited (blob limiter RATE_LIMIT_BLOBS_PER_WINDOW, default 6000 per window per IP, 0 = disabled). The response carries the CORS header block but NO Retry-After header, so the client must apply its own backoff."
       summary: "Batch blob existence check."
       tags:
         - "Blobs"
   /blobs/manifest:
     get:
-      description: "Lists stored blobs (content-addressed by SHA-256). Serves the structure-sync reconciliation of the plugin BlobClient. Raw transfer routes sit behind the blob rate limiter (the shared JSON limiter is bypassed)."
+      description: "Lists stored blobs (content-addressed by SHA-256). Serves the structure-sync reconciliation of the plugin BlobClient. Raw transfer routes sit behind the blob rate limiter (the shared JSON limiter is bypassed) — see the 429 response."
       parameters:
         - description: "Max entries (server default caps the page)."
           in: "query"
@@ -1636,6 +1655,12 @@ paths:
               schema:
                 "$ref": "#/components/schemas/Error"
           description: "Unauthorized."
+        "429":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Rate limited (blob limiter RATE_LIMIT_BLOBS_PER_WINDOW, default 6000 per window per IP, 0 = disabled). The response carries the CORS header block but NO Retry-After header, so the client must apply its own backoff."
       summary: "List the blob manifest."
       tags:
         - "Blobs"
@@ -1658,19 +1683,19 @@ paths:
             type: "string"
       responses:
         "200":
-          description: "Blob deleted."
+          description: "Blob deleted — also returned when the hash was already absent (idempotent)."
         "401":
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
           description: "Unauthorized."
-        "404":
+        "429":
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
-          description: "Blob not found."
+          description: "Rate limited (blob limiter RATE_LIMIT_BLOBS_PER_WINDOW, default 6000 per window per IP, 0 = disabled). The response carries the CORS header block but NO Retry-After header, so the client must apply its own backoff."
       summary: "Delete a blob (GC) — DESTRUCTIVE."
       tags:
         - "Blobs"
@@ -1723,6 +1748,14 @@ paths:
               schema:
                 "$ref": "#/components/schemas/Error"
           description: "Blob not found (or unusable)."
+        "416":
+          description: "Range Not Satisfiable — a Range header was sent but cannot be served (malformed, start >= size, or an inverted end < start). The body is EMPTY; the blob size is carried by the `Content-Range: bytes */<size>` header together with `Accept-Ranges: bytes`."
+        "429":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Rate limited (blob limiter RATE_LIMIT_BLOBS_PER_WINDOW, default 6000 per window per IP, 0 = disabled). The response carries the CORS header block but NO Retry-After header, so the client must apply its own backoff."
       summary: "Download a blob (raw binary, Range-capable)."
       tags:
         - "Blobs"
@@ -1750,8 +1783,8 @@ paths:
               type: "string"
         required: true
       responses:
-        "200":
-          description: "Blob stored (hash verified on the server side)."
+        "201":
+          description: "Blob stored (hash verified on the server side). 201 Created is the success code — the client keys on it."
         "400":
           content:
             application/json:
@@ -1764,6 +1797,24 @@ paths:
               schema:
                 "$ref": "#/components/schemas/Error"
           description: "Unauthorized."
+        "411":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Length Required — the Content-Length header is missing or unparseable, so the body is refused before it is streamed (chunked transfer-encoding is not accepted on uploads)."
+        "413":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Payload Too Large — Content-Length exceeds BLOB_MAX_SINGLE_SIZE (env-tunable, default 16 MiB); use the chunked upload routes."
+        "429":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Rate limited (blob limiter RATE_LIMIT_BLOBS_PER_WINDOW, default 6000 per window per IP, 0 = disabled). The response carries the CORS header block but NO Retry-After header, so the client must apply its own backoff."
       summary: "Upload a blob (raw binary)."
       tags:
         - "Blobs"
@@ -1799,20 +1850,32 @@ paths:
               type: "string"
         required: true
       responses:
-        "200":
-          description: "Chunk stored."
-        "400":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
-          description: "Chunk too large / total-size overflow / invalid index."
+        "201":
+          description: "Chunk stored. 201 Created is the success code — the client keys on it."
         "401":
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
           description: "Unauthorized."
+        "411":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Length Required — the Content-Length header is missing or unparseable, so the chunk body is refused before it is streamed (chunked transfer-encoding is not accepted on uploads)."
+        "413":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Payload Too Large — Content-Length exceeds BLOB_MAX_CHUNK_SIZE (env-tunable, default 4 MiB, plus a 1 KiB tolerance), or the chunk INDEX is beyond the chunk count BLOB_MAX_TOTAL_BYTES / BLOB_MAX_CHUNK_SIZE allows."
+        "429":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Rate limited (blob limiter RATE_LIMIT_BLOBS_PER_WINDOW, default 6000 per window per IP, 0 = disabled). The response carries the CORS header block but NO Retry-After header, so the client must apply its own backoff."
       summary: "Upload one chunk of a chunked blob."
       tags:
         - "Blobs"
@@ -1840,20 +1903,32 @@ paths:
               type: "object"
         required: false
       responses:
-        "200":
-          description: "Blob finalized and hash-verified."
+        "201":
+          description: "Blob finalized and hash-verified (empty body). 201 Created is the success code — the client keys on it."
         "400":
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
-          description: "Missing chunks / hash mismatch."
+          description: "Invalid JSON body / `totalChunks` missing or not a number, a missing chunk, or a hash mismatch of the assembled blob. NOTE: the missing-chunk case is a client error that the server currently answers 500 — the mapping is tracked as a server-side fix."
         "401":
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
           description: "Unauthorized."
+        "413":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Payload Too Large — the declared `totalSize` or the implied chunk count exceeds BLOB_MAX_TOTAL_BYTES (env-tunable, default 1 GiB); the assembly is refused before any work starts."
+        "429":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Rate limited (blob limiter RATE_LIMIT_BLOBS_PER_WINDOW, default 6000 per window per IP, 0 = disabled). The response carries the CORS header block but NO Retry-After header, so the client must apply its own backoff."
       summary: "Finalize a chunked upload."
       tags:
         - "Blobs"
@@ -1887,6 +1962,12 @@ paths:
               schema:
                 "$ref": "#/components/schemas/Error"
           description: "Unauthorized."
+        "429":
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+          description: "Rate limited (blob limiter RATE_LIMIT_BLOBS_PER_WINDOW, default 6000 per window per IP, 0 = disabled). The response carries the CORS header block but NO Retry-After header, so the client must apply its own backoff."
       summary: "Query chunked-upload status (resume)."
       tags:
         - "Blobs"

@@ -1,3 +1,8 @@
+local rateLimited = {
+  description: 'Rate limited (blob limiter RATE_LIMIT_BLOBS_PER_WINDOW, default 6000 per window per IP, 0 = disabled). The response carries the CORS header block but NO Retry-After header, so the client must apply its own backoff.',
+  content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } },
+};
+
 {
   components: {
     schemas: {
@@ -7,9 +12,14 @@
         properties: {
           hashes: {
             type: 'array',
-            maxItems: 500,
+            // The SERVER cap is BLOB_MAX_BATCH_HASHES (env-tunable, default
+            // 5000) and a longer list is rejected with 400. `maxItems` is the
+            // client-side validation bound, so it must state the server cap —
+            // the 500 that used to sit here is the reference CLIENT's
+            // MAX_BATCH_SIZE (how IT chunks a larger set), not a server limit.
+            maxItems: 5000,
             items: { type: 'string', description: '64-hex SHA-256 blob hash.' },
-            description: 'Up to 500 blob hashes per request; larger sets are chunked by the client.',
+            description: 'Blob hashes to probe. Server cap: BLOB_MAX_BATCH_HASHES (env-tunable, default 5000); a longer list is rejected with 400. The reference client chunks larger sets into requests of 500 (its own MAX_BATCH_SIZE, not a server limit).',
           },
         },
       },
@@ -60,15 +70,18 @@
         type: 'object',
         required: ['complete', 'totalChunks', 'presentChunks', 'chunkSize', 'totalSize'],
         properties: {
-          complete: { type: 'boolean', description: 'True once every chunk is uploaded and the upload is ready to commit.' },
-          totalChunks: { type: 'integer' },
+          complete: { type: 'boolean', description: 'True when the blob is already committed and visible as a COMPLETE object (not merely assembled from chunks).' },
+          totalChunks: {
+            type: 'integer',
+            description: 'Total number of chunks the upload consists of — the count the client passes in the commit request. Must NOT repeat presentChunks.length (the resume set, which is a lower bound until the commit declares the real total).',
+          },
           presentChunks: {
             type: 'array',
             items: { type: 'integer' },
             description: 'Indexes of already-uploaded chunks (resume support).',
           },
-          chunkSize: { type: 'integer', description: 'Chunk size in bytes.' },
-          totalSize: { type: 'integer', description: 'Expected total blob size in bytes.' },
+          chunkSize: { type: 'integer', description: 'Chunk size in bytes the server is CONFIGURED to accept (BLOB_MAX_CHUNK_SIZE; env-tunable, default 4 MiB) — a hardcoded default that ignores the configured cap is non-conformant.' },
+          totalSize: { type: 'integer', description: 'Expected total blob size in bytes. Advisory before the commit: the client declares the authoritative totalSize in the commit body.' },
         },
       },
     },
@@ -79,7 +92,7 @@
       get: {
         tags: ['Blobs'],
         summary: 'List the blob manifest.',
-        description: 'Lists stored blobs (content-addressed by SHA-256). Serves the structure-sync reconciliation of the plugin BlobClient. Raw transfer routes sit behind the blob rate limiter (the shared JSON limiter is bypassed).',
+        description: 'Lists stored blobs (content-addressed by SHA-256). Serves the structure-sync reconciliation of the plugin BlobClient. Raw transfer routes sit behind the blob rate limiter (the shared JSON limiter is bypassed) — see the 429 response.',
         parameters: [
           { name: 'limit', 'in': 'query', required: false, description: 'Max entries (server default caps the page).', schema: { type: 'integer' } },
           { name: 'offset', 'in': 'query', required: false, description: 'Page offset into the full (hash-sorted) manifest.', schema: { type: 'integer' } },
@@ -91,6 +104,7 @@
             content: { 'application/json': { schema: { "$ref": '#/components/schemas/BlobManifest' } } },
           },
           '401': { description: 'Unauthorized.', content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } } },
+          '429': rateLimited,
         },
       },
     },
@@ -98,7 +112,7 @@
       post: {
         tags: ['Blobs'],
         summary: 'Batch blob existence check.',
-        description: 'Checks which of up to 500 hashes exist on the server (probes run concurrently) — replaces N individual HEAD checks. Chunked into requests of 500 by the client.',
+        description: 'Checks which of the submitted hashes exist on the server (probes run concurrently) — replaces N individual HEAD checks. The server accepts up to BLOB_MAX_BATCH_HASHES hashes per request (env-tunable, default 5000) and answers 400 above that; the reference client chunks larger sets into requests of 500 (its own MAX_BATCH_SIZE, not a server limit).',
         parameters: [
           { name: 'X-Project-ID', 'in': 'header', required: true, description: 'Project key for the blob store.', schema: { type: 'string' } },
         ],
@@ -113,6 +127,7 @@
           },
           '400': { description: 'Invalid or oversized hash list.', content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } } },
           '401': { description: 'Unauthorized.', content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } } },
+          '429': rateLimited,
         },
       },
     },
@@ -130,9 +145,12 @@
           content: { 'application/octet-stream': { schema: { type: 'string', format: 'binary' } } },
         },
         responses: {
-          '200': { description: 'Blob stored (hash verified on the server side).' },
+          '201': { description: 'Blob stored (hash verified on the server side). 201 Created is the success code — the client keys on it.' },
           '400': { description: 'Hash mismatch / invalid hash / size limit.', content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } } },
           '401': { description: 'Unauthorized.', content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } } },
+          '411': { description: 'Length Required — the Content-Length header is missing or unparseable, so the body is refused before it is streamed (chunked transfer-encoding is not accepted on uploads).', content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } } },
+          '413': { description: 'Payload Too Large — Content-Length exceeds BLOB_MAX_SINGLE_SIZE (env-tunable, default 16 MiB); use the chunked upload routes.', content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } } },
+          '429': rateLimited,
         },
       },
       get: {
@@ -155,6 +173,8 @@
           },
           '404': { description: 'Blob not found (or unusable).', content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } } },
           '401': { description: 'Unauthorized.', content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } } },
+          '416': { description: 'Range Not Satisfiable — a Range header was sent but cannot be served (malformed, start >= size, or an inverted end < start). The body is EMPTY; the blob size is carried by the `Content-Range: bytes */<size>` header together with `Accept-Ranges: bytes`.' },
+          '429': rateLimited,
         },
       },
       delete: {
@@ -166,9 +186,15 @@
           { name: 'X-Project-ID', 'in': 'header', required: true, description: 'Project key.', schema: { type: 'string' } },
         ],
         responses: {
-          '200': { description: 'Blob deleted.' },
-          '404': { description: 'Blob not found.', content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } } },
+          // NO 404: the delete is idempotent. The repository swallows every
+          // unlink error (`catch { /* Already gone — fine. */ }`), so a hash
+          // that is absent answers 200 exactly like one that was removed — a
+          // GC retry must never fail. A future server that wants to
+          // distinguish "gone" must answer 404 on BOTH paths (i.e. before
+          // deleting) and add it here.
+          '200': { description: 'Blob deleted — also returned when the hash was already absent (idempotent).' },
           '401': { description: 'Unauthorized.', content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } } },
+          '429': rateLimited,
         },
       },
     },
@@ -187,9 +213,13 @@
           content: { 'application/octet-stream': { schema: { type: 'string', format: 'binary' } } },
         },
         responses: {
-          '200': { description: 'Chunk stored.' },
-          '400': { description: 'Chunk too large / total-size overflow / invalid index.', content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } } },
+          '201': { description: 'Chunk stored. 201 Created is the success code — the client keys on it.' },
           '401': { description: 'Unauthorized.', content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } } },
+          '411': { description: 'Length Required — the Content-Length header is missing or unparseable, so the chunk body is refused before it is streamed (chunked transfer-encoding is not accepted on uploads).', content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } } },
+          // Oversized chunks and out-of-range indexes are 413, NOT 400 (the
+          // contract used to promise a 400 this route cannot write).
+          '413': { description: 'Payload Too Large — Content-Length exceeds BLOB_MAX_CHUNK_SIZE (env-tunable, default 4 MiB, plus a 1 KiB tolerance), or the chunk INDEX is beyond the chunk count BLOB_MAX_TOTAL_BYTES / BLOB_MAX_CHUNK_SIZE allows.', content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } } },
+          '429': rateLimited,
         },
       },
     },
@@ -208,6 +238,7 @@
             content: { 'application/json': { schema: { "$ref": '#/components/schemas/ChunkUploadStatus' } } },
           },
           '401': { description: 'Unauthorized.', content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } } },
+          '429': rateLimited,
         },
       },
     },
@@ -225,9 +256,11 @@
           content: { 'application/json': { schema: { type: 'object' } } },
         },
         responses: {
-          '200': { description: 'Blob finalized and hash-verified.' },
-          '400': { description: 'Missing chunks / hash mismatch.', content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } } },
+          '201': { description: 'Blob finalized and hash-verified (empty body). 201 Created is the success code — the client keys on it.' },
+          '400': { description: 'Invalid JSON body / `totalChunks` missing or not a number, a missing chunk, or a hash mismatch of the assembled blob. NOTE: the missing-chunk case is a client error that the server currently answers 500 — the mapping is tracked as a server-side fix.', content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } } },
           '401': { description: 'Unauthorized.', content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } } },
+          '413': { description: 'Payload Too Large — the declared `totalSize` or the implied chunk count exceeds BLOB_MAX_TOTAL_BYTES (env-tunable, default 1 GiB); the assembly is refused before any work starts.', content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } } },
+          '429': rateLimited,
         },
       },
     },

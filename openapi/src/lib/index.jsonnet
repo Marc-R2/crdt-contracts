@@ -55,11 +55,19 @@
       get: {
         tags: ['System'],
         summary: 'Return basic server information.',
-        description: 'Returns basic information about the CRDT Sync Server for health checks.',
+        description: 'Returns basic information about the CRDT Sync Server for health checks. The route sits behind the SHARED REST rate limiter and the REST dispatcher, so a probe can also be answered with 429 or 5xx — a client MUST treat any non-2xx answer as "server unreachable" and retry with backoff, never as a protocol mismatch.',
         responses: {
           '200': {
             description: 'Server info returned successfully.',
             content: { 'application/json': { schema: { "$ref": '#/components/schemas/InfoResponse' } } }
+          },
+          '429': {
+            description: 'Too Many Requests (shared REST limiter RATE_LIMIT_MAX_PER_WINDOW, default 300 per window per IP and per project when X-Project-ID is sent, 0 = disabled). The response carries the CORS header block but NO Retry-After header, so the client must apply its own backoff.',
+            content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } }
+          },
+          '500': {
+            description: 'Internal Server Error — generic body, no internals leaked (the REST dispatcher maps every unmapped error to 500).',
+            content: { 'application/json': { schema: { "$ref": '#/components/schemas/Error' } } }
           },
         },
       },
