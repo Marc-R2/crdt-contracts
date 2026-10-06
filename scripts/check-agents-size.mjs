@@ -47,7 +47,7 @@ import {fileURLToPath} from 'node:url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 /** The umbrella directive's number (user directive, 2026-09-21). Do not quietly raise it. */
-export const DEFAULT_CAP = 100000;
+export const DEFAULT_CAP = 24000;
 
 /** Parse argv. Exported so a test can drive the real parser rather than a copy. */
 export function parseArgs(argv) {
