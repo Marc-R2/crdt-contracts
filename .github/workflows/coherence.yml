@@ -3,17 +3,24 @@
 # Re-homes the still-valuable cross-consumer invariants of the archived umbrella
 # `obsidian-crdt-sync` `.github/workflows/compat.yml` `openapi-pins` job
 # (`tools/check-openapi-pins.mjs`) into the shared dependency, which is the
-# natural owner of the contract. It asserts that both consumers pin the SAME
-# crdt-contracts commit as this repository's HEAD, that
-# `compat-manifest.json.openapiSha256` equals the rendered yaml hash, that the
-# deliberate generator-JAR divergence (server 7.25.0 / plugin 7.21.0) is intact,
-# and that both consumers still declare a `check:openapi` gate.
+# natural owner of the contract.
+#
+# Consumers migrated from a nested `packages/crdt-contracts` git submodule to a
+# prebuilt release tarball:
+#   "@marc-r2/crdt-contracts": "https://github.com/Marc-R2/crdt-contracts/releases/download/vX.Y.Z/marc-r2-crdt-contracts-X.Y.Z.tgz"
+# so there is no gitlink to read. The gate now reads each consumer's
+# package.json dependency spec + package-lock.json resolved URL/integrity,
+# parses the `vX.Y.Z` release tag, and asserts that both consumers reference the
+# SAME release. It also asserts that `compat-manifest.json.openapiSha256` equals
+# the rendered yaml hash, that the deliberate generator-JAR divergence (server
+# 7.25.0 / plugin 7.21.0) is intact, and that both consumers still declare a
+# `check:openapi` gate. The shared tag is verified to exist in THIS repository,
+# adapting the old gitlink "commit exists" reachability check to the release tag.
 #
 # The consumers are PRIVATE, so the job fails closed without SUBMODULES_TOKEN
-# (blocker HB-2, umbrella docs/REPO_SPLIT_PLAN.md §8). Each is checked out with
-# `actions/checkout` from its own remote, which also proves the checked-out SHA
-# is reachable (the umbrella's separate remote-reachability tier is therefore
-# dropped).
+# (blocker HB-2, umbrella docs/REPO_SPLIT_PLAN.md §8) to check them out. They
+# need only their committed package.json/package-lock.json, so a shallow clone
+# is fine.
 #
 # GitHub Actions jobs are currently blocked account-wide by a billing/spending
 # limit, so no scheduled or manual run can start yet; the local
@@ -56,9 +63,11 @@ jobs:
                 with:
                     path: crdt-contracts
                     token: ${{ secrets.SUBMODULES_TOKEN }}
-                    # Full history: the gate proves the consumer-pinned commit
-                    # exists in THIS repository, which a depth-1 clone hides.
+                    # Full history + tags: the gate proves the consumer-shared
+                    # release tag exists in THIS repository, which a shallow,
+                    # tag-less clone hides.
                     fetch-depth: 0
+                    fetch-tags: true
 
             -   name: Checkout crdt_plugin
                 uses: actions/checkout@v4
@@ -98,7 +107,7 @@ jobs:
                 timeout-minutes: 5
                 run: npm run build
 
-            -   name: Suite coherence gate
+            -   name: Suite coherence gate (release-dep)
                 working-directory: crdt-contracts
                 env:
                     CRDT_PLUGIN_DIR: ${{ github.workspace }}/crdt_plugin
