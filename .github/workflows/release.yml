@@ -15,10 +15,8 @@
 # so the tag MUST be `v` + package.json's version. A mismatch would publish an
 # address no consumer pins. `--verify-tag` then refuses to invent a tag.
 #
-# GitHub Actions are currently blocked account-wide by a billing limit, so this
-# workflow will not run until that is resolved; the local `npm run release:pack`
-# + `gh release create` produced the current release. The file exists so future
-# tags publish automatically.
+# Future `vX.Y.Z` tags publish automatically (the workflow drives
+# `npm run release:pack` + `gh release create`).
 name: Release
 
 on:
