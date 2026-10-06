@@ -1,0 +1,3 @@
+Local gate (npm run check:agents): AGENTS.md = 9111 bytes, cap 24000 -> ok, exit 0.
+
+Only DEFAULT_CAP changed; in-script doc prose (still says 100,000) and AGENTS.md's own 100,000 line were left untouched per scope.
