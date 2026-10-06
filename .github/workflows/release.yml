@@ -88,13 +88,13 @@ jobs:
                         exit 1
                     fi
 
-            - name: Build, gate and pack the tarball
+            -   name: Build, gate and pack the tarball
                 # Renders openapi.yaml, builds dist/, runs the compat gate (contracts
                 # version + openapiSha256 pin) and writes the prebuilt tarball.
                 timeout-minutes: 20
                 run: npm run release:pack
 
-            - name: Locate and inspect the tarball
+            -   name: Locate and inspect the tarball
                 id: pack
                 # ASSERT the consumer-required entries are present BEFORE uploading:
                 # `gh release create` uploads whatever it is given, so a missing
@@ -131,7 +131,7 @@ jobs:
 
                     echo "tarball=${tarball}" >> "${GITHUB_OUTPUT}"
 
-            - name: Publish the GitHub Release
+            -   name: Publish the GitHub Release
                 if: ${{ github.event_name == 'push' || inputs.publish == true }}
                 # `github.token` is minted from the `permissions:` block above and
                 # expires with the job; `GH_TOKEN` is where `gh` reads it.
@@ -163,7 +163,7 @@ jobs:
                     already inside the tarball.
                     NOTES
 
-            - name: Verify the published release
+            -   name: Verify the published release
                 if: ${{ github.event_name == 'push' || inputs.publish == true }}
                 # `gh release create` exiting 0 means GitHub accepted the request; it
                 # does not prove the asset is visible and non-empty. Ask the API the
