@@ -1,0 +1,5 @@
+Context & Technical Rationale
+Split Phase 7 (documentation half): the former monorepo AGENTS.md was split into repo-scoped files. This commit adds the AGENTS.md for 'crdt-contracts', containing only the sections that belong to this repository, with every path/command valid inside it (no monorepo-relative prefixes, no sibling in-tree directories). Provenance is machine-checked in the umbrella repo by tools/check-agents-coverage.mjs: every v1 heading maps to exactly one destination via an 'agents-src' marker.
+
+Privacy & Security Guarantees
+Documentation only; no code and no runtime behaviour changed. Zero data egress: no network calls, no telemetry, no external fetch. No secrets, tokens, PEM keys or .env content are introduced; the file documents credential-hygiene rules but contains none.

@@ -1,0 +1,2 @@
+Context & rationale: strict-review n1 (PR-body archaeology correction is done in the PR body itself; the repo docs now name the deleted typescript-fetch client) and n2 (operationIds deferred with rationale: adding them would change Phase-B generated method names away from the committed module's current names). AGENTS.md remains well under the 100k cap (wc -c rechecked: 9111).
+Privacy & security: docs-only; zero egress.

@@ -1,0 +1,17 @@
+Context & Technical Rationale:
+The extracted crdt-contracts repo carried 4 contract tests from the monorepo;
+compatGate.test.ts/compatGateDrift.test.ts shell out to scripts/compat-gate.mjs,
+which was never extracted. The parent script's default contracts dir was
+packages/crdt-contracts and it additionally asserted monorepo-only facts
+(root/server package.json file-deps, plugin/server import sites) that have no
+meaning here. The repo-local gate defaults --contracts-dir to the repo ROOT
+(package now lives there) and keeps only the independent-pin checks described in
+README.md: compat-manifest.protocolVersion === exported PROTOCOL_VERSION and
+compat-manifest.contracts === package.json.version. Resolution stays
+require(dist) -> import(src/protocol.ts) -> strict source-parse so a build is not
+a precondition. This is the 'repo-local equivalent matching documented gate
+semantics' option; no contract semantics were invented.
+
+Privacy & Security Guarantees:
+Read-only: the gate reads local JSON + the local compiled/source artifact and
+exits. Zero network, zero credentials, no telemetry, no data egress.

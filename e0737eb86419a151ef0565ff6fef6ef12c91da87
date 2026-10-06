@@ -1,0 +1,2 @@
+Context & rationale: strict-review minor m1. The responsibility split is now honest: compat:gate = cheap pin-vs-file (no render), check:openapi = expensive render-vs-file + conformance. The red proof uses the existing --contracts-dir throwaway-copy pattern, so the real repo is never mutated.
+Privacy & security: hash comparison only; zero egress.

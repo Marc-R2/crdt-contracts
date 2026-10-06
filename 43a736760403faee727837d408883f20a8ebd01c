@@ -1,0 +1,2 @@
+Context & rationale: strict-review NEW + M1. Config pins the catching rules as errors so a Redocly default change cannot silently downgrade them. check:openapi now = scripts/check-openapi.mjs (drift + pin + refs) && redocly lint.
+Privacy & security: both are devDependencies outside the published files surface; lockfile contains registry URLs only; zero egress.

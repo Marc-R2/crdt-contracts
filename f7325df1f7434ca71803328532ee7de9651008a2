@@ -1,0 +1,9 @@
+Context & Technical Rationale:
+- Symptom: umbrella 'git status' shows 'M crdt-contracts (untracked content)'.
+- Cause: macOS Finder writes .DS_Store at the repo root. Parent .gitignore rules are NOT inherited by submodule working trees.
+- Fix: append a macOS section with .DS_Store and **/.DS_Store to .gitignore.
+- Verification: git check-ignore -v matches root and nested paths; npm run build green. npm test: 14/15 pass; the one failure (openapiPipeline drift red-proof) is an environmental timeout (its jsonnet render takes ~10 min here vs the test's hardcoded 300 s) - the gate itself runs GREEN when invoked directly.
+- No .DS_Store was tracked, so no git rm --cached was needed.
+
+Privacy & Security Guarantees:
+- Local-only edit; zero network, zero credentials, zero data egress. No secrets touched.

@@ -1,0 +1,2 @@
+Context & rationale: strict-review minor m2. Verified zero references via grep over openapi/src/** before removal. no-unused-components is now an error in .redocly.yaml (next commit), so the gate would have caught a re-introduction.
+Privacy & security: schema removal only; zero egress.
