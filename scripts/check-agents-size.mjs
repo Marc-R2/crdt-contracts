@@ -11,11 +11,10 @@
  * cap is measured on every `npm test`-adjacent CI run and on demand via
  * `npm run check:agents`.
  *
- * THE CAP. 100,000 bytes — the umbrella directive (user directive, 2026-09-21),
- * matching `tools/check-agents-coverage.mjs` in the archived umbrella and the
- * cap recorded in this repository's own `AGENTS.md`. The number is a DIRECTIVE,
- * not a budget to negotiate: when the file is over it, the answer is a MOVE to
- * the note that owns the topic, never a bigger number.
+ * THE CAP. 24,000 bytes — a suite-wide directive, lowered from the umbrella's
+ * 100,000 (user directive, 2026-09-21). The number is a DIRECTIVE, not a budget
+ * to negotiate: when the file is over it, the answer is a MOVE to the note that
+ * owns the topic, never a bigger number.
  *
  * WHAT IT DOES. Measures the byte length of every `AGENTS.md` in scope, compares
  * it against the cap, and exits non-zero naming the file, its size, the cap and
@@ -34,7 +33,7 @@
  *
  *   A SYMLINK IS REFUSED, not followed: see `measure` below.
  *
- *   `--cap` overrides the default of 100,000.
+ *   `--cap` overrides the default of 24,000.
  *
  * Privacy: reads file lengths only. It does not read, print, copy or transmit
  * the CONTENT of any file it measures, and it performs no network access and no
