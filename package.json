@@ -17,6 +17,7 @@
 		"build:openapi": "node scripts/build-openapi.mjs",
 		"check:openapi": "node scripts/check-openapi.mjs && npm run check:openapi:lint",
 		"check:openapi:lint": "redocly lint openapi/openapi.yaml --config .redocly.yaml",
+		"check:agents": "node scripts/check-agents-size.mjs",
 		"check:suite": "node scripts/check-suite-coherence.mjs",
 		"check:suite:dry": "node scripts/check-suite-coherence.mjs --dry-run",
 		"compat:gate": "node scripts/compat-gate.mjs",
