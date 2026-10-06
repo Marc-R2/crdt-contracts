@@ -4,6 +4,6 @@ Rationale:
 - License id: package.json carried "0-BSD" (not an SPDX identifier); npm/registry tooling and SPDX scanners reject it. Corrected to "0BSD" and added the suite's standard 0BSD LICENSE text (same file as the parent/plugin/server repos).
 - files: openapi/openapi.yaml added so the rendered REST contract travels with the package. The swagger-ui-*.js bundles (~4.7 MB total) are deliberately NOT shipped; listing the single yaml path keeps them out while still shipping the generated contract.
 - release:pack: prebuilt tarball. Rejected prepare/prepack hooks because they would run CMake + the native @hanazuki/node-jsonnet binding on every consumer install. The workflow drives the npm script so CI stays thin.
-- Release workflow: tag v* -> npm run release:pack -> gh release create --verify-tag. GitHub Actions are blocked account-wide by a billing limit, so this release was built and published locally; the workflow exists for future automation.
+- Release workflow: tag v* -> npm run release:pack -> gh release create --verify-tag. The current release was built and published locally; the workflow automates future tags.
 
 Security/privacy: no secrets in the change. Full-history targeted scan (105 commits) found zero private keys, AWS/GitHub/Slack/OpenAI/Google token patterns, and zero credential assignments outside the minified vendor swagger bundles; no .env/*.pem/*.key files were ever committed. The published artifact is built locally; no data egress beyond the deliberate release upload.
