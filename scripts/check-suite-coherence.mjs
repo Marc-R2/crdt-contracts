@@ -1,69 +1,80 @@
 #!/usr/bin/env node
 /**
- * check-suite-coherence.mjs — cross-consumer OpenAPI bridge gate (re-homed).
+ * check-suite-coherence.mjs — cross-consumer OpenAPI bridge gate.
  *
  * WHY THIS FILE EXISTS
  * --------------------
  * The OpenAPI contract is a THREE-repo bridge: this repository owns the
  * rendered `openapi/openapi.yaml` (+ its `compat-manifest.json.openapiSha256`
- * pin), and `crdt_server` / `crdt_plugin` each consume it through a pinned
- * `packages/crdt-contracts` gitlink and regenerate their own client/module with
- * a drift gate (`check:openapi`). Each consumer already proves "my artifact
- * matches the contract I pin" — but nothing proves the two consumers pin the
- * SAME contract commit, that the declared `openapiSha256` matches the yaml it
+ * pin), and `crdt_server` / `crdt_plugin` each consume it through a release
+ * tarball and regenerate their own client/module with a drift gate
+ * (`check:openapi`). Each consumer already proves "my artifact matches the
+ * contract I pin" — but nothing proves the two consumers reference the SAME
+ * crdt-contracts release, that the declared `openapiSha256` matches the yaml it
  * actually ships, or that the DELIBERATE generator-JAR divergence (server
  * 7.25.0 / plugin 7.21.0) has not silently changed. One consumer could bump its
- * nested contract pin alone and both repo-local gates would stay green while
- * the two halves of the bridge drift apart. This gate closes that hole.
+ * contract release alone and both repo-local gates would stay green while the
+ * two halves of the bridge drift apart. This gate closes that hole.
  *
- * This is the re-homed `openapi-pins` job + `tools/check-openapi-pins.mjs` from
- * the umbrella `obsidian-crdt-sync` (`.github/workflows/compat.yml`), which is
- * archived. The shared dependency is the natural owner of the cross-consumer
- * coherence check, so the still-valuable invariants live here now.
+ * MIGRATION: NESTED SUBMODULE -> RELEASE TARBALL
+ * ----------------------------------------------
+ * Consumers used to pin a `packages/crdt-contracts` gitlink and depend on it
+ * via `"@marc-r2/crdt-contracts": "file:packages/crdt-contracts"`. They now
+ * install a prebuilt tarball over plain HTTPS:
+ *
+ *   https://github.com/Marc-R2/crdt-contracts/releases/download/vX.Y.Z/marc-r2-crdt-contracts-X.Y.Z.tgz
+ *
+ * so there is no gitlink to read. This gate instead reads each consumer's
+ * `package.json` dependency spec AND its `package-lock.json` `resolved` URL +
+ * `integrity`, parses the `vX.Y.Z` release tag from either, and requires both
+ * consumers to reference the SAME tag.
  *
  * WHAT IT ASSERTS (over sibling checkouts of the two consumers)
  * -------------------------------------------------------------
- *   1. CONSUMER PIN: both consumers' `packages/crdt-contracts` gitlink is the
- *      SAME full, non-zero commit, and that commit exists in this repository.
- *      (The umbrella compared each consumer to the umbrella's own gitlink; with
- *      the umbrella gone, the meaningful cross-consumer invariant is that the
- *      two consumers AGREE, and that the agreed commit is really this repo's.
- *      An optional `--expected-pin` lets a release step pin an exact commit.)
- *   2. MANIFEST HASH: `compat-manifest.json.openapiSha256` equals the actual
+ *   1. RELEASE DEP: each consumer declares `@marc-r2/crdt-contracts` as a
+ *      release-tarball URL (or a declared version) — never the legacy
+ *      `file:`/`link:`/git form — and its `package-lock.json` records a
+ *      `resolved` URL plus an `integrity` hash.
+ *   2. SHARED RELEASE: both consumers reference the SAME `vX.Y.Z` release/tag
+ *      (the spec and lockfile must agree within each consumer too). An optional
+ *      `--expected-version` lets a release step pin an exact version.
+ *   3. RELEASE REACHABLE: the shared tag exists in THIS repository — the
+ *      adapted reachability check that replaces the old gitlink "commit exists"
+ *      assertion.
+ *   4. MANIFEST HASH: `compat-manifest.json.openapiSha256` equals the actual
  *      `sha256(openapi/openapi.yaml)` of this checkout.
- *   3. GENERATOR JAR: each consumer's `openapitools.json` generator version
+ *   5. GENERATOR JAR: each consumer's `openapitools.json` generator version
  *      equals the documented expected-value map (7.25.0 / 7.21.0 — the
  *      divergence is intentional and documented in the consumer READMEs).
- *   4. CONSUMER GATE: both consumers declare a `check:openapi` script.
+ *   6. CONSUMER GATE: both consumers declare a `check:openapi` script.
  *
- * DELIBERATELY DROPPED from the umbrella version
- * ----------------------------------------------
- *   - Comparing each consumer pin to the umbrella's own `crdt-contracts`
- *     gitlink. There is no umbrella pin now, and comparing to this repo's HEAD
- *     would false-fail every time `main` advances past a released commit; the
- *     cross-consumer equality + resolvability above is the durable invariant.
- *   - The remote-reachability tier (`--remote`, `SUBMODULES_TOKEN`,
- *     `verifyRemotePin` from `check-submodule-pins.mjs`): in CI the consumers
- *     are checked out with `actions/checkout` from their remotes, so
- *     reachability is already proven by the checkout itself, and the helper is
- *     archived with the umbrella.
+ * DELIBERATELY DROPPED
+ * --------------------
+ *   - Reading the `packages/crdt-contracts` gitlink (`git ls-tree`), and the
+ *     `parseGitlink` / `readNestedPin` / `pinExists` helpers plus the old
+ *     `--expected-pin` flag: the nested submodule no longer exists.
+ *   - The umbrella remote-reachability tier (`verifyRemotePin`,
+ *     `SUBMODULES_TOKEN` inside the script): the local tag check above plus the
+ *     CI checkout already prove reachability. The workflow still needs
+ *     `SUBMODULES_TOKEN` to check out the PRIVATE consumers themselves.
  *
  * USAGE
  *   node scripts/check-suite-coherence.mjs [--dry-run] [--quiet]
  *       [--contracts <dir>] [--plugin <dir>] [--server <dir>]
- *       [--expected-pin <40-hex>]
+ *       [--expected-version <X.Y.Z>]
  *
  *   Consumer checkouts default to `../crdt_plugin` and `../crdt_server`
  *   (siblings of this repository — both the CI layout and the umbrella layout).
  *   Override with the flags or the env vars `CRDT_PLUGIN_DIR` /
  *   `CRDT_SERVER_DIR`; `CRDT_CONTRACTS_DIR` overrides the contract root and
- *   `CRDT_EXPECTED_PIN` the optional expected pin.
+ *   `CRDT_EXPECTED_VERSION` the optional expected version.
  *
  *   `--dry-run` reports missing consumer checkouts instead of failing, so the
  *   gate can be rehearsed before the private siblings are cloned.
  *
- * Zero network, zero credentials, no data leaves the machine. The gitlink SHA
- * and package versions it prints are public build inputs, never secrets.
+ * Zero network, zero credentials, no data leaves the machine. The release tag,
+ * integrity hash and generator versions it prints are public build inputs,
+ * never secrets.
  */
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
@@ -74,8 +85,8 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 /** The repository root (the directory holding `scripts/`). */
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** Nested submodule path both consumers pin this repository at. */
-export const CONSUMER_NESTED_PATH = 'packages/crdt-contracts';
+/** The package name both consumers depend on. */
+export const CONTRACTS_NAME = '@marc-r2/crdt-contracts';
 
 /** Consumers of this package that the coherence gate spans. */
 export const CONSUMERS = ['crdt_server', 'crdt_plugin'];
@@ -100,37 +111,95 @@ export const EXPECTED_GENERATOR_JAR = {
 	crdt_plugin: '7.21.0',
 };
 
+/** `vX.Y.Z` (optionally suffixed) captured from a release-download URL. */
+const RELEASE_TAG = /releases\/download\/(v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)\/([^/?#]+)/u;
+
+/** A bare or declared `vX.Y.Z` version spec (range operators stripped by caller). */
+const SEMVER = /^v?(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)$/u;
+
 /** sha256 (hex) of a file on disk. */
 export function sha256File(file) {
 	return createHash('sha256').update(readFileSync(file)).digest('hex');
 }
 
-/** Extracts the 40-hex gitlink for `path` from raw `git ls-tree` output; '' when absent. */
-export function parseGitlink(output, path) {
-	for (const line of output.split('\n')) {
-		const match = /^160000 commit ([0-9a-f]{40})\t(.+)$/u.exec(line);
-		if (match && match[2] === path) return match[1];
+/** True when `url` is a release-download URL of THIS repository. */
+export function isReleaseUrlForRepo(url) {
+	return /^https?:\/\/github\.com\/marc-r2\/crdt-contracts\/releases\/download\//iu.test(url ?? '');
+}
+
+/**
+ * Extracts the release `{tag, version, asset}` from a GitHub release-download
+ * URL; `null` when the URL carries no `releases/download/vX.Y.Z/<asset>` path.
+ */
+export function parseReleaseUrl(url) {
+	const match = RELEASE_TAG.exec(url ?? '');
+	if (!match) return null;
+	return {tag: match[1], version: match[1].replace(/^v/u, ''), asset: match[2]};
+}
+
+/**
+ * Parses a declared dependency version (`0.1.0`, `^0.1.0`, `~0.1.0`, `v0.1.0`)
+ * into `{tag, version, ranged}`; `null` when it is not a version at all.
+ */
+export function parseDeclaredVersion(spec) {
+	const trimmed = (spec ?? '').trim();
+	const bare = trimmed.replace(/^[\^~>=<\s]+/u, '');
+	const match = SEMVER.exec(bare);
+	if (!match) return null;
+	return {tag: `v${match[1]}`, version: match[1], ranged: trimmed !== bare};
+}
+
+/**
+ * Broadens {@link parseVersionSpec} over either dependency form:
+ * `{version, tag, kind: 'release-url' | 'exact' | 'range'}` or `null`.
+ */
+export function parseVersionSpec(spec) {
+	if (!spec) return null;
+	if (isReleaseUrlForRepo(spec)) {
+		const release = parseReleaseUrl(spec);
+		return release ? {...release, kind: 'release-url'} : null;
+	}
+	const declared = parseDeclaredVersion(spec);
+	return declared ? {...declared, kind: declared.ranged ? 'range' : 'exact'} : null;
+}
+
+/** True for the migrated-away nested-submodule / link / git dependency forms. */
+export function isLegacyRef(spec) {
+	return /^(file|link|workspace|portal):/u.test(spec) ||
+		/^git\+/u.test(spec) ||
+		/^github:/u.test(spec) ||
+		(spec ?? '').includes('.git');
+}
+
+/** Returns the consumer's declared spec for the contracts package, '' when absent. */
+export function findDependency(pkg) {
+	for (const field of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
+		const value = pkg?.[field]?.[CONTRACTS_NAME];
+		if (value) return value;
 	}
 	return '';
 }
 
-/** True for a full, non-zero 40-hex commit SHA. */
-function isUsablePin(pin) {
-	return /^[0-9a-f]{40}$/u.test(pin) && !/^0{40}$/u.test(pin);
+/** Returns the lockfile entry for the contracts package (npm v7+ then v6), or null. */
+export function findLockEntry(lock) {
+	if (!lock) return null;
+	return lock.packages?.[`node_modules/${CONTRACTS_NAME}`] ?? lock.dependencies?.[CONTRACTS_NAME] ?? null;
 }
 
 /**
  * Pure bridge evaluation over already-gathered data. `consumers` maps a repo
- * name to `{nestedPin, jarVersion, hasCheckScript}`; `skipped` names consumers
- * whose checkout is absent (dry-run only). Returns `{errors, rows, sharedPin}`,
- * where `sharedPin` is the agreed commit when both present consumers pin one.
+ * name to `{depSpec, lockPresent, lockResolved, lockIntegrity, lockVersion,
+ * jarVersion, hasCheckScript}`; `skipped` names consumers whose checkout is
+ * absent (dry-run only). Returns `{errors, rows, sharedVersion, sharedTag}`,
+ * where `sharedVersion`/`sharedTag` are the agreed release when both present
+ * consumers reference one.
  */
 export function evaluateSuiteCoherence({
 	contractsManifest = {},
 	contractsYamlSha256 = '',
 	consumers = {},
 	skipped = [],
-	expectedPin = '',
+	expectedVersion = '',
 	expectedJar = EXPECTED_GENERATOR_JAR,
 }) {
 	const errors = [];
@@ -149,28 +218,70 @@ export function evaluateSuiteCoherence({
 		);
 	}
 
-	const pins = {};
+	const versions = {};
 	for (const name of CONSUMERS) {
 		if (skipped.includes(name)) {
-			rows.push({name, nestedPin: '', jarVersion: '', status: 'skipped'});
+			rows.push({name, version: '', tag: '', jarVersion: '', status: 'skipped'});
 			continue;
 		}
 		if (!(name in consumers)) {
 			errors.push(`MISSING CHECKOUT: no checkout supplied for ${name}.`);
-			rows.push({name, nestedPin: '', jarVersion: '', status: 'missing'});
+			rows.push({name, version: '', tag: '', jarVersion: '', status: 'missing'});
 			continue;
 		}
-		const consumer = consumers[name] ?? {};
-		const nestedPin = consumer.nestedPin ?? '';
-		const problems = [];
 
-		if (!nestedPin) {
+		const consumer = consumers[name] ?? {};
+		const problems = [];
+		const dep = (consumer.depSpec ?? '').trim();
+		const legacy = Boolean(dep) && isLegacyRef(dep);
+		const spec = legacy ? null : parseVersionSpec(dep);
+
+		if (!dep) {
+			problems.push(`MISSING DEPENDENCY: ${name} package.json does not declare ${CONTRACTS_NAME}.`);
+		} else if (legacy) {
 			problems.push(
-				`MISSING GITLINK: ${name} records no ${CONSUMER_NESTED_PATH} pin ` +
-				'(submodule not initialized?).',
+				`LEGACY DEPENDENCY FORM: ${name} still declares ${CONTRACTS_NAME} as "${dep}" ` +
+				'(nested gitlink/link). Migrate to the release-tarball URL.',
 			);
-		} else if (!isUsablePin(nestedPin)) {
-			problems.push(`BAD PIN: ${name} ${CONSUMER_NESTED_PATH} is not a usable commit (${nestedPin}).`);
+		} else if (!spec) {
+			problems.push(
+				`UNSUPPORTED DEPENDENCY: ${name} ${CONTRACTS_NAME} spec "${dep}" is neither a ` +
+				'crdt-contracts release-tarball URL nor a declared version.',
+			);
+		}
+
+		if (!consumer.lockPresent) {
+			problems.push(
+				`MISSING LOCKFILE: ${name} has no package-lock.json; the gate needs the ` +
+				'resolved URL + integrity to prove the pinned release.',
+			);
+		} else {
+			if (!consumer.lockResolved) {
+				problems.push(`MISSING LOCK RESOLVED URL: ${name} package-lock.json has no resolved URL for ${CONTRACTS_NAME}.`);
+			}
+			if (!consumer.lockIntegrity) {
+				problems.push(`MISSING LOCK INTEGRITY: ${name} package-lock.json has no integrity hash for ${CONTRACTS_NAME}.`);
+			}
+		}
+		if (spec?.kind === 'release-url' && consumer.lockResolved && !isReleaseUrlForRepo(consumer.lockResolved)) {
+			problems.push(
+				`LOCK NOT A RELEASE URL: ${name} package-lock resolves "${consumer.lockResolved}", ` +
+				'expected a crdt-contracts releases/download URL.',
+			);
+		}
+
+		const lockSpec = parseVersionSpec(consumer.lockResolved);
+		const specVersion = spec?.version ?? '';
+		const lockVersion = lockSpec?.version ?? (consumer.lockVersion ?? '');
+		if (specVersion && lockVersion && specVersion !== lockVersion) {
+			problems.push(
+				`DEP/LOCK MISMATCH: ${name} declares ${specVersion} but package-lock resolves ${lockVersion}.`,
+			);
+		}
+		const version = specVersion || lockVersion || '';
+		const tag = spec?.tag || (version ? `v${version}` : '');
+		if (!version) {
+			problems.push(`UNKNOWN VERSION: ${name} does not pin a resolvable ${CONTRACTS_NAME} version.`);
 		}
 
 		const expected = expectedJar[name];
@@ -180,36 +291,39 @@ export function evaluateSuiteCoherence({
 				`expected ${expected} (deliberate divergence, documented in the consumer README).`,
 			);
 		}
-
 		if (!consumer.hasCheckScript) {
 			problems.push(`MISSING GATE: ${name} package.json has no check:openapi script.`);
 		}
 
-		pins[name] = nestedPin;
+		versions[name] = version;
 		errors.push(...problems);
 		rows.push({
 			name,
-			nestedPin,
+			version,
+			tag,
 			jarVersion: consumer.jarVersion ?? '',
 			status: problems.length ? 'error' : 'ok',
 		});
 	}
 
-	const present = CONSUMERS.filter((name) => pins[name] !== undefined);
-	const usable = [...new Set(present.map((name) => pins[name]).filter(isUsablePin))];
-	if (usable.length > 1) {
-		const detail = present.map((name) => `${name}=${pins[name] || '(none)'}`).join(', ');
+	const present = CONSUMERS.filter((name) => versions[name] !== undefined);
+	const distinct = [...new Set(present.map((name) => versions[name]).filter(Boolean))];
+	if (distinct.length > 1) {
+		const detail = present.map((name) => `${name}=${versions[name] || '(none)'}`).join(', ');
 		errors.push(
-			`CONSUMER PIN DRIFT: the consumers disagree on ${CONSUMER_NESTED_PATH} (${detail}); ` +
-			'they must pin the SAME crdt-contracts commit.',
+			`CONSUMER VERSION DRIFT: the consumers reference different ${CONTRACTS_NAME} ` +
+			`releases (${detail}); they must use the SAME release tag.`,
 		);
 		for (const row of rows) if (row.status === 'ok') row.status = 'error';
 	}
-	if (expectedPin && usable.length === 1 && usable[0] !== expectedPin) {
-		errors.push(`EXPECTED PIN MISMATCH: consumers pin ${usable[0]}, expected ${expectedPin}.`);
+	const sharedVersion = distinct.length === 1 ? distinct[0] : '';
+	const sharedTag = sharedVersion ? `v${sharedVersion}` : '';
+	const normalizedExpected = expectedVersion.replace(/^v/u, '');
+	if (normalizedExpected && sharedVersion && sharedVersion !== normalizedExpected) {
+		errors.push(`EXPECTED VERSION MISMATCH: consumers reference ${sharedVersion}, expected ${expectedVersion}.`);
 	}
 
-	return {errors, rows, sharedPin: usable.length === 1 ? usable[0] : ''};
+	return {errors, rows, sharedVersion, sharedTag};
 }
 
 /** Runs git in `cwd`, capturing stderr so callers can report a sanitized reason. */
@@ -217,10 +331,10 @@ function git(cwd, args) {
 	return execFileSync('git', ['-C', cwd, ...args], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']}).trim();
 }
 
-/** True when `sha` is a commit object in the repository at `cwd`. */
-export function pinExists(cwd, sha) {
+/** True when `tag` is a tag object in the repository at `cwd`. */
+export function tagExists(cwd, tag) {
 	try {
-		git(cwd, ['cat-file', '-e', `${sha}^{commit}`]);
+		git(cwd, ['rev-parse', '--verify', '--quiet', `refs/tags/${tag}`]);
 		return true;
 	} catch {
 		return false;
@@ -245,11 +359,6 @@ function readJsonOrNull(file) {
 	}
 }
 
-/** Reads the `packages/crdt-contracts` gitlink recorded at a consumer's HEAD. */
-export function readNestedPin(dir) {
-	return parseGitlink(git(dir, ['ls-tree', 'HEAD', CONSUMER_NESTED_PATH]), CONSUMER_NESTED_PATH);
-}
-
 /** Gathers the bridge inputs from this repository and the consumer checkouts. */
 export function gatherSuiteCoherence({contractsDir, consumerDirs}) {
 	const contractsHead = git(contractsDir, ['rev-parse', 'HEAD']);
@@ -265,9 +374,15 @@ export function gatherSuiteCoherence({contractsDir, consumerDirs}) {
 			continue;
 		}
 		const pkg = readJsonOrNull(join(dir, 'package.json')) ?? {};
+		const lock = readJsonOrNull(join(dir, 'package-lock.json'));
+		const lockEntry = findLockEntry(lock) ?? {};
 		const tools = readJsonOrNull(join(dir, 'openapitools.json')) ?? {};
 		consumers[name] = {
-			nestedPin: readNestedPin(dir),
+			depSpec: findDependency(pkg),
+			lockPresent: lock !== null,
+			lockResolved: lockEntry.resolved ?? '',
+			lockIntegrity: lockEntry.integrity ?? '',
+			lockVersion: lockEntry.version ?? '',
 			jarVersion: tools?.['generator-cli']?.version ?? '',
 			hasCheckScript: Boolean(pkg.scripts?.['check:openapi']),
 		};
@@ -279,7 +394,7 @@ export function gatherSuiteCoherence({contractsDir, consumerDirs}) {
 /** Parses CLI flags; unknown flags throw so a typo cannot silently widen the gate. */
 export function parseArgs(argv) {
 	const args = {dryRun: false, quiet: false};
-	const valued = new Set(['--contracts', '--plugin', '--server', '--expected-pin']);
+	const valued = new Set(['--contracts', '--plugin', '--server', '--expected-version']);
 	for (let i = 0; i < argv.length; i += 1) {
 		const arg = argv[i];
 		if (arg === '--dry-run') args.dryRun = true;
@@ -294,7 +409,8 @@ export function parseArgs(argv) {
 export function resolveConsumerDirs(args, env = process.env) {
 	const dirs = {};
 	for (const name of CONSUMERS) {
-		const override = args[name.replace('_', '-')] ?? env[CONSUMER_ENV[name]];
+		const flag = name.replace(/^crdt_/u, '');
+		const override = args[flag] ?? env[CONSUMER_ENV[name]];
 		dirs[name] = resolve(override ?? join(ROOT, '..', name));
 	}
 	return dirs;
@@ -311,7 +427,7 @@ function main() {
 
 	const contractsDir = resolve(args.contracts ?? process.env.CRDT_CONTRACTS_DIR ?? ROOT);
 	const consumerDirs = resolveConsumerDirs(args);
-	const expectedPin = args['expected-pin'] ?? process.env.CRDT_EXPECTED_PIN ?? '';
+	const expectedVersion = args['expected-version'] ?? process.env.CRDT_EXPECTED_VERSION ?? '';
 
 	let data;
 	try {
@@ -320,25 +436,26 @@ function main() {
 		console.error('[check:suite] cannot read the coherence inputs');
 		console.error(`  ${error.message}`);
 		console.error(
-			'  The contract checkout must be intact and each consumer must be a git checkout ' +
-			'(siblings are PRIVATE: clone them or provide SUBMODULES_TOKEN in CI).',
+			'  The contract checkout must be intact and each consumer checkout must contain ' +
+			'package.json + package-lock.json (siblings are PRIVATE: clone them or provide ' +
+			'SUBMODULES_TOKEN in CI).',
 		);
 		process.exit(1);
 	}
 
-	const {errors, rows, sharedPin} = evaluateSuiteCoherence({
+	const {errors, rows, sharedVersion, sharedTag} = evaluateSuiteCoherence({
 		contractsManifest: data.contractsManifest,
 		contractsYamlSha256: data.contractsYamlSha256,
 		consumers: data.consumers,
 		skipped: data.skipped,
-		expectedPin,
+		expectedVersion,
 	});
 	const failures = [...errors];
 
-	if (sharedPin && !pinExists(contractsDir, sharedPin)) {
+	if (sharedTag && !tagExists(contractsDir, sharedTag)) {
 		failures.push(
-			`UNKNOWN CONTRACT PIN: ${sharedPin} is not a commit in this crdt-contracts checkout ` +
-			'(the consumers must pin a commit of THIS repository; a shallow clone needs full history).',
+			`UNKNOWN RELEASE TAG: ${sharedTag} is not a tag in this crdt-contracts checkout ` +
+			'(the consumers must pin a release of THIS repository; a shallow clone needs full tags).',
 		);
 	}
 
@@ -355,15 +472,15 @@ function main() {
 		console.log(`[check:suite] contracts HEAD=${data.contractsHead} yamlSha256=${data.contractsYamlSha256}`);
 		for (const row of rows) {
 			console.log(
-				`  ${row.status.padEnd(7)}  ${row.name.padEnd(12)}  pin=${row.nestedPin || '(none)'}  ` +
-				`jar=${row.jarVersion || '(none)'}`,
+				`  ${row.status.padEnd(7)}  ${row.name.padEnd(12)}  version=${row.version || '(none)'}  ` +
+				`tag=${row.tag || '(none)'}  jar=${row.jarVersion || '(none)'}`,
 			);
 		}
 	}
 
 	const mode = args.dryRun ? 'dry-run' : 'enforce';
 	console.log(
-		`[check:suite] mode=${mode} consumers=${CONSUMERS.length} sharedPin=${sharedPin || '(none)'} ` +
+		`[check:suite] mode=${mode} consumers=${CONSUMERS.length} sharedVersion=${sharedVersion || '(none)'} ` +
 		`errors=${failures.length}`,
 	);
 	for (const failure of failures) console.log(`  ${failure}`);
