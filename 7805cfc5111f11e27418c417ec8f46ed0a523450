@@ -9,4 +9,4 @@ Validation (local, Node v26.5.0; CI pins Node 22):
 
 Privacy/security: no secrets, no registry auth, no external uploads.
 
-Runner-only differences: Node 22 vs local Node 26. No GitHub run can go green (account-level billing/spending-limit failure per task).
+Runner-only differences: Node 22 vs local Node 26.
