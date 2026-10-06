@@ -3,18 +3,20 @@
 	"version": "0.1.0",
 	"private": true,
 	"description": "Implementation-free wire contracts (types + constants) shared by the Obsidian plugin and the sync server.",
-	"license": "0-BSD",
+	"license": "0BSD",
 	"type": "commonjs",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"files": [
 		"dist",
 		"src",
-		"compat-manifest.json"
+		"compat-manifest.json",
+		"openapi/openapi.yaml"
 	],
 	"scripts": {
 		"build": "tsc -p tsconfig.json",
 		"build:openapi": "node scripts/build-openapi.mjs",
+		"release:pack": "npm run build:openapi && npm run build && npm run compat:gate && npm pack",
 		"check:openapi": "node scripts/check-openapi.mjs && npm run check:openapi:lint",
 		"check:openapi:lint": "redocly lint openapi/openapi.yaml --config .redocly.yaml",
 		"check:agents": "node scripts/check-agents-size.mjs",
