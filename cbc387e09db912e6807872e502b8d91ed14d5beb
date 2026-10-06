@@ -1,0 +1,1 @@
+Removed now-obsolete workflow-availability caveats from coherence.yml and release.yml because GitHub Actions executes again; triggers and job logic unchanged.
