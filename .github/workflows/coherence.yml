@@ -21,10 +21,6 @@
 # (blocker HB-2, umbrella docs/REPO_SPLIT_PLAN.md §8) to check them out. They
 # need only their committed package.json/package-lock.json, so a shallow clone
 # is fine.
-#
-# GitHub Actions jobs are currently blocked account-wide by a billing/spending
-# limit, so no scheduled or manual run can start yet; the local
-# `npm run check:suite` / `npm run check:suite:dry` are authoritative meanwhile.
 name: Suite Coherence
 
 on:
