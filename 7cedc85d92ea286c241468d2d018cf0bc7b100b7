@@ -1,0 +1,1 @@
+Gate passes locally: AGENTS.md is 9111 bytes, under the 24000 cap. Dropped the now-false claim that the cap matches tools/check-agents-coverage.mjs (parent still 100000) and the AGENTS.md-recorded number (that file is out of scope).
