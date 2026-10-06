@@ -50,6 +50,11 @@ jobs:
                 timeout-minutes: 5
                 run: npm run build
 
+            -   name: AGENTS.md size cap
+                # A DEAD gate is no gate: this measures the file on every test
+                # run instead of trusting a documented cap nobody enforces.
+                run: npm run check:agents
+
             -   name: OpenAPI gate (drift + conformance lint)
                 # check:openapi renders openapi/src/** with the pinned jsonnet
                 # devDependency, fails when the committed openapi/openapi.yaml
