@@ -1,0 +1,106 @@
+# Suite Coherence — cross-consumer OpenAPI bridge gate.
+#
+# Re-homes the still-valuable cross-consumer invariants of the archived umbrella
+# `obsidian-crdt-sync` `.github/workflows/compat.yml` `openapi-pins` job
+# (`tools/check-openapi-pins.mjs`) into the shared dependency, which is the
+# natural owner of the contract. It asserts that both consumers pin the SAME
+# crdt-contracts commit as this repository's HEAD, that
+# `compat-manifest.json.openapiSha256` equals the rendered yaml hash, that the
+# deliberate generator-JAR divergence (server 7.25.0 / plugin 7.21.0) is intact,
+# and that both consumers still declare a `check:openapi` gate.
+#
+# The consumers are PRIVATE, so the job fails closed without SUBMODULES_TOKEN
+# (blocker HB-2, umbrella docs/REPO_SPLIT_PLAN.md §8). Each is checked out with
+# `actions/checkout` from its own remote, which also proves the checked-out SHA
+# is reachable (the umbrella's separate remote-reachability tier is therefore
+# dropped).
+#
+# GitHub Actions jobs are currently blocked account-wide by a billing/spending
+# limit, so no scheduled or manual run can start yet; the local
+# `npm run check:suite` / `npm run check:suite:dry` are authoritative meanwhile.
+name: Suite Coherence
+
+on:
+    schedule:
+        # Weekly, Monday 06:00 UTC, so consumer pin drift is caught even when
+        # neither side has a push event that would re-check the bridge.
+        -   cron: '0 6 * * 1'
+    workflow_dispatch:
+    push:
+        tags: [ 'v*' ]
+
+permissions:
+    contents: read
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    coherence:
+        runs-on: ubuntu-latest
+        timeout-minutes: 25
+
+        steps:
+            -   name: Require SUBMODULES_TOKEN (blocker HB-2)
+                env:
+                    SUBMODULES_TOKEN: ${{ secrets.SUBMODULES_TOKEN }}
+                run: |
+                    if [ -z "${SUBMODULES_TOKEN}" ]; then
+                        echo "::error title=HB-2 SUBMODULES_TOKEN unset::The suite coherence gate spans the PRIVATE crdt_plugin/crdt_server repositories. Create a fine-grained PAT/App with contents:read on Marc-R2/{crdt_plugin,crdt_server,crdt-contracts} and store it as the SUBMODULES_TOKEN repository secret (umbrella docs/REPO_SPLIT_PLAN.md §8 HB-2). The gate cannot run until then."
+                        exit 1
+                    fi
+
+            -   name: Checkout crdt-contracts
+                uses: actions/checkout@v4
+                with:
+                    path: crdt-contracts
+                    token: ${{ secrets.SUBMODULES_TOKEN }}
+                    # Full history: the gate proves the consumer-pinned commit
+                    # exists in THIS repository, which a depth-1 clone hides.
+                    fetch-depth: 0
+
+            -   name: Checkout crdt_plugin
+                uses: actions/checkout@v4
+                with:
+                    repository: Marc-R2/crdt_plugin
+                    path: crdt_plugin
+                    token: ${{ secrets.SUBMODULES_TOKEN }}
+
+            -   name: Checkout crdt_server
+                uses: actions/checkout@v4
+                with:
+                    repository: Marc-R2/crdt_server
+                    path: crdt_server
+                    token: ${{ secrets.SUBMODULES_TOKEN }}
+
+            -   name: Setup Node.js 22
+                uses: actions/setup-node@v4
+                with:
+                    node-version: '22'
+                    cache: 'npm'
+                    cache-dependency-path: crdt-contracts/package-lock.json
+
+            -   name: Setup CMake
+                # @hanazuki/node-jsonnet compiles a native binding via cmake-js
+                # during `npm ci`; do not depend on the runner image's CMake.
+                uses: jwlawson/actions-setup-cmake@v2.2.0
+                with:
+                    cmake-version: '3.31.x'
+
+            -   name: Install dependencies
+                working-directory: crdt-contracts
+                timeout-minutes: 10
+                run: npm ci
+
+            -   name: Build
+                working-directory: crdt-contracts
+                timeout-minutes: 5
+                run: npm run build
+
+            -   name: Suite coherence gate
+                working-directory: crdt-contracts
+                env:
+                    CRDT_PLUGIN_DIR: ${{ github.workspace }}/crdt_plugin
+                    CRDT_SERVER_DIR: ${{ github.workspace }}/crdt_server
+                run: npm run check:suite
