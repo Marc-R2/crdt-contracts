@@ -18,11 +18,11 @@ room-name helpers stay in the consuming repos.
 
 | Repository | Relation to this package |
 |---|---|
-| [`crdt_plugin`](https://github.com/Marc-R2/crdt_plugin) | Consumer — depends on `@marc-r2/crdt-contracts` (git submodule at `packages/crdt-contracts`). |
-| [`crdt_server`](https://github.com/Marc-R2/crdt_server) | Consumer — depends on `@marc-r2/crdt-contracts` (git submodule at `packages/crdt-contracts`). |
+| [`crdt_plugin`](https://github.com/Marc-R2/crdt_plugin) | Consumer — installs the public release tarball `@marc-r2/crdt-contracts` (no submodule, no build step). |
+| [`crdt_server`](https://github.com/Marc-R2/crdt_server) | Consumer — installs the public release tarball `@marc-r2/crdt-contracts` (no submodule, no build step). |
 | [`web_vault`](https://github.com/Marc-R2/web_vault) | **Not** a consumer — the portal/WebVault keep portal-local copies and must not import this package. |
 | [`crdt-e2e-catalog`](https://github.com/Marc-R2/crdt-e2e-catalog) | Not a consumer. |
-| [`obsidian-crdt-sync`](https://github.com/Marc-R2/obsidian-crdt-sync) | Parent/umbrella — hosts this package in-tree as `packages/crdt-contracts` while the monorepo is still the integration branch; the parent `compat.yml` verifies the pins. |
+| [`obsidian-crdt-sync`](https://github.com/Marc-R2/obsidian-crdt-sync) | Parent/umbrella — split architecture, decisions and phase ordering. |
 
 This repository consumes **no** sibling repository and has no submodules.
 
@@ -38,7 +38,7 @@ This repository consumes **no** sibling repository and has no submodules.
 | `src/protocol.ts` | `PROTOCOL_VERSION` — the single integer pinning room-name/entry-schema compatibility. |
 | `src/index.ts` | The public surface (re-exports all of the above). |
 | `openapi/` | OpenAPI 3 pipeline: jsonnet sources (`src/**`, the edit targets) and the GENERATED `openapi.yaml` (never hand-edit; `build:openapi` re-renders, `check:openapi` gates drift + Redocly conformance) + Swagger UI assets. |
-| `compat-manifest.json` | `{ "contracts": "<version>", "protocolVersion": <n> }` — the consumer-facing compatibility pin. |
+| `compat-manifest.json` | `{ "contracts": "<version>", "protocolVersion": <n>, "openapiSha256": "<64-hex>" }` — the consumer-facing compatibility pin. |
 | `tests/unit/contracts/` | Contract tests (vitest): wire surface, implementation-free guard, `compat:gate` green + drift proof. |
 
 ## Build & test
@@ -69,26 +69,28 @@ Both pins are enforced in this repository by `tests/unit/contracts/` and the rep
 
 ## How consumers obtain this package
 
-- **In the monorepo (current integration path):** declared as `file:packages/crdt-contracts` on the
-  plugin and `file:../packages/crdt-contracts` on the server — zero cross-repo auth.
-- **Cross-repo (split path):** a git dependency over HTTPS pinned to a release tag
-  (`git+https://github.com/Marc-R2/crdt-contracts.git#vX.Y.Z`, decision D-1 in the split plan),
-  authenticated in CI with the `SUBMODULES_TOKEN` secret and locally via the keychain/SSH.
+`crdt_plugin` and `crdt_server` declare the package as a **public** GitHub Release tarball URL in
+`package.json`:
 
-## Cross-repo credential caveat
+```
+"@marc-r2/crdt-contracts":
+  "https://github.com/Marc-R2/crdt-contracts/releases/download/v0.1.0/marc-r2-crdt-contracts-0.1.0.tgz"
+```
 
-`SUBMODULES_TOKEN` is **not yet configured** (blocker HB-2 in the split plan). Cross-repo reads from
-CI therefore fail closed; until the secret exists, the in-tree `file:` dependency + parity
-typecheck (`check:parity` in the server) is the supported path. Do not enable a cross-repo consumer
-CI job before the Phase-0.5 red/green auth proof has passed.
+`package-lock.json` records the `resolved` URL + `integrity`, so `npm ci` installs it anonymously —
+no token, no SSH key, no submodule, no contracts build step. The tarball ships its own prebuilt
+`dist/`, `src/`, `compat-manifest.json` and `openapi/openapi.yaml`. To pick up a new contracts
+change, publish a release here and bump the tarball URL in each consumer. The cross-consumer
+identity of the pinned release is checked by `npm run check:suite`
+(`scripts/check-suite-coherence.mjs`).
 
 ## Status
 
 - **Verified:** `npm run build` emits `dist/index.js` + `dist/index.d.ts`, the package loads
   (`node -e "require('./dist/index.js')"`), and `npm test` runs the re-rooted contract tests
   (vitest) green against the repo-local `compat:gate`. See [`docs/STATUS.md`](docs/STATUS.md).
-- **Open follow-ups:** release tag + consumer pin (split-plan D-1, blocked on `SUBMODULES_TOKEN`)
-  and the Phase-B/C consumer generation (server module / plugin client) from the rendered contract.
+- **Open follow-up:** the Phase-B/C consumer generation (server module / plugin client) from the
+  rendered contract.
 
 ## Sibling repositories
 
