@@ -6,139 +6,64 @@ German; that NEVER changes the output language. Only an EXPLICIT user request fo
 overrides this. Subagents must receive this rule in their briefs.
 
 Implementation-free **wire contracts** (types + constants only) shared by the Obsidian plugin
-(`crdt_plugin`) and the sync server (`crdt_server`). This is the former monorepo's
-`packages/crdt-contracts/**` promoted to the repository root.
+(`crdt_plugin`) and the sync server (`crdt_server`). Former monorepo `packages/crdt-contracts/**`
+promoted to the repository root. Consumers install the **public** GitHub Release tarball
+`@marc-r2/crdt-contracts` (currently `v0.1.0`) via `package.json`; no submodule, no sibling checkout.
 
-- Umbrella: `Marc-R2/obsidian-crdt-sync` — split plan `docs/REPO_SPLIT_PLAN.md` (§1, §4.1, §5).
 - This repository consumes **no** sibling repository and has no submodules.
 - `web_vault` and `crdt-e2e-catalog` are intentionally NOT consumers.
+- Umbrella: `Marc-R2/obsidian-crdt-sync`; split plan `docs/REPO_SPLIT_PLAN.md` (parent repo).
 
-## Hard boundary: implementation-free
-
-The package is **types and constants ONLY** — no functions, no classes, no arrow functions, no UUID/
-crypto sources, no filesystem or DOM access, no Yjs, no NestJS runtime. Minting, predicates,
-validators and room-name helpers stay in the consuming repos. Enforced by
-`tests/unit/contracts/implementationFree.test.ts`.
-
-- `freshTypedDocId` + the read predicates (`isBlobDocId`/`isLiveEditDocId`/`isCrdtDocId`/
-  `docIdPrefixOf`) are PLUGIN code (`crdt_plugin/src/sync/docType.ts`).
-- Blob validators (`assertSafeBlobHash`, `isUsableBlob`) and their behavior tests live in SERVER.
-- `server/src/generated-api-module/**` is a SERVER runtime stub, not a contract.
-- Do NOT add behavior "for convenience" — it breaks the implementation-free guard and the
-  consumer parity model.
-
-## Contract surface (`src/`)
-
-| File | Contents |
-|---|---|
-| `docType.ts` | `DocType` enum (`text\|map\|json\|list\|xml\|frag\|blob`), `DocumentId`, `DOCID_PREFIXES` (`text:`/`map:`/`json:`/`list:`/`xml:`/`frag:`/`sha256:`), `BLOB_DOCID_PREFIX`. |
-| `blob.ts` | `EMPTY_SHA256`, `SHA256_HEX_REGEX`, `BlobDocId`, `CRDT_DOCID_PREFIXES`. |
-| `blobTypes.ts` | `/blobs/*` REST payload interfaces (batch-check, manifest, chunk status). |
-| `history.ts` | History timeline wire types (index, checkpoints, commits, chunk updates). |
-| `vcs.ts` | Git/VCS domain types shared by plugin and server. |
-| `protocol.ts` | `PROTOCOL_VERSION` — the single integer pinning room-name/entry-schema compatibility. |
-| `index.ts` | The public surface (re-exports all of the above). |
-
-`openapi/` carries the OpenAPI 3 contract as a **jsonnet → yaml pipeline**: `openapi/src/**`
-(requested output) renders to the **generated artifact** `openapi/openapi.yaml`, plus the Swagger
-UI assets (moved here from the former `server/docs/`). The yaml is committed, but it is a BUILD
-PRODUCT — never hand-edit it; edit the jsonnet sources and re-run `build:openapi`.
-
-### docId prefix schema (the contract)
-
-- **docId ≠ globalId.** docId is the Y.Map **key** in the structure entries map + persisted stores
-  (`local-tracked.json`, `content-exported.json`, `conflicts.json`, `AbandonedPathStore`). globalId
-  is a separate, **unprefixed** UUID = Hocuspocus room key (`project-{id}@{globalId}`),
-  `state/content/{globalId}.bin` filename, server snapshot keys and history doc_id. The type prefix
-  (`text:`, `map:`, …) lives ONLY on the docId — rooms, server data and history are untouched by
-  prefix changes.
-- The enum/prefix constants above are canonical here; the strict predicates and the rehome contract
-  are consumer-side (PLUGIN), with the server mirror in `crdt_server/src/utils/blobIdUtils.ts`
-  (`CRDT_DOCID_PREFIXES` + `isCrdtDocId`).
-- **NO legacy bare-UUID fallback**: `docIdPrefixOf` is strict (`''`/unknown → `null`). Clean cut.
-
-## Build & test
+## Commands
 
 ```bash
 npm ci                  # needs CMake + a C toolchain (native jsonnet binding via cmake-js)
 npm run build           # tsc -p tsconfig.json -> dist/ (CommonJS + .d.ts)
 npm run build:openapi   # renders openapi/src/** -> openapi/openapi.yaml (pinned jsonnet devDep)
-npm run check:openapi   # drift gate (rebuild + bytes + openapiSha256 pin) THEN the Redocly conformance lint
+npm run check:openapi   # drift gate (rebuild + bytes + openapiSha256 pin) THEN Redocly lint
 npm test                # builds, then runs the contract tests (vitest)
-npm run compat:gate     # builds, then verifies the compat-manifest pins vs the exports + the yaml hash
+npm run compat:gate     # builds, then verifies the compat-manifest pins vs the exports + yaml hash
+npm run check:agents    # AGENTS.md size gate (cap 24000 bytes)
+npm run check:suite     # cross-consumer OpenAPI bridge gate (needs sibling checkouts)
 ```
 
-Requires Node.js >= 22. The package declares `main: dist/index.js` + `types: dist/index.d.ts`, so
-**every consumer must build it (CJS + declarations) before using it** — a source-only package breaks
-the compiled CJS server (`ERR_MODULE_NOT_FOUND`). This is a hard requirement of the distribution, not
-a convenience.
+Requires Node.js >= 22. The package emits CommonJS + `.d.ts`; **every consumer needs the built
+`dist/`** (a source-only package breaks the compiled CJS server with `ERR_MODULE_NOT_FOUND`).
 
-## Compat manifest (the pin)
+## Critical invariants
 
-`compat-manifest.json` must stay in lockstep with the code:
+- **Implementation-free.** Types and constants ONLY — no functions/classes/UUID/crypto/fs/DOM/Yjs/
+  NestJS runtime. Minting, predicates, validators, room-name helpers live in the consumers. Guard:
+  `tests/unit/contracts/implementationFree.test.ts`. Never add behavior "for convenience".
+- **`openapi/openapi.yaml` is a BUILD PRODUCT.** Never hand-edit it; edit the jsonnet under
+  `openapi/src/**` and re-run `npm run build:openapi`.
+- **`compat-manifest.json` stays in lockstep** with the code (enforced by tests + `compat:gate` +
+  `check:openapi`): `protocolVersion` == `PROTOCOL_VERSION` in `src/protocol.ts`;
+  `contracts` == `package.json` `version`; `openapiSha256` == sha256 of the rendered yaml. Edit the
+  code, the yaml and the manifest in the SAME commit. A protocol/type bump is a breaking change.
+- **docId ≠ globalId.** The type prefix (`text:`, `map:`, …) lives ONLY on the docId; rooms, server
+  data and history use the unprefixed globalId. The prefix constants here are canonical; the strict
+  predicates and the rehome contract are consumer-side. NO legacy bare-UUID fallback.
+- **Commit discipline.** Small, self-contained, atomic commits; never mix unrelated changes. Strict
+  TDD (failing contract/drift test first, then the minimal change). Every commit carries a
+  `git notes add` with (1) context & rationale and (2) privacy & security guarantees (zero data
+  egress, credential hygiene, local-only processing).
+- **AGENTS.md size cap: 24000 bytes** (`npm run check:agents`). Keep this file lean; put detail in
+  `docs/`.
 
-```json
-{ "contracts": "0.1.0", "protocolVersion": 1, "openapiSha256": "<64-hex sha256 of openapi/openapi.yaml>" }
-```
+## Key pointers
 
-- `protocolVersion` must equal `PROTOCOL_VERSION` in `src/protocol.ts` (bump it on **any** breaking
-  room-name or structure-entry-schema change).
-- `contracts` must equal `version` in `package.json`.
-- `openapiSha256` must equal the sha256 of the RENDERED `openapi/openapi.yaml` (decision C-6).
-  After a deliberate contract change: edit `openapi/src/**`, re-run `npm run build:openapi`,
-  re-compute the pin, update `compat-manifest.json` in the SAME commit.
-- Enforced here by `tests/unit/contracts/`, the repo-local `compat:gate`
-  (`scripts/compat-gate.mjs`: all pins vs the actual export AND `openapiSha256` vs the committed
-  yaml hash) and `check:openapi` (render-vs-file byte equality + the Redocly conformance lint).
-  Together they prove pin == committed file == render. Wired into CI right after build.
-  `versionsUiSha256` is deliberately NOT in the manifest (the shared-CSS invariant is repo-local +
-  cross-checked — see `web_vault/AGENTS.md`).
-- The consumer `compat:gate` compares the declared pin against the actual exported
-  `PROTOCOL_VERSION`; the cross-repo `compat` job additionally boots the pinned SERVER and asserts
-  `compat-manifest.protocolVersion === server.versions.protocol`.
+- `src/` — the contract surface (`docType.ts`, `blob.ts`, `blobTypes.ts`, `history.ts`, `vcs.ts`,
+  `protocol.ts`, `index.ts`).
+- `openapi/src/**` — jsonnet edit targets; `openapi/openapi.yaml` — generated artifact.
+- `compat-manifest.json` — the consumer-facing compatibility pin.
+- `tests/unit/contracts/` — contract tests; `scripts/` — the build/gate scripts.
+- Conventions: indentation tabs, tab width 4 (`.editorconfig`); files > ~300 lines should be split.
 
-## How consumers obtain this package
+## Deeper docs
 
-- Declared as a git dependency over HTTPS pinned to a release tag (D-1):
-  `"@marc-r2/crdt-contracts": "git+https://github.com/Marc-R2/crdt-contracts.git#vX.Y.Z"`.
-- `crdt_plugin` and `crdt_server` consume it as a submodule at `packages/crdt-contracts` (in-tree
-  `file:` dependency + `check:parity` for the zero-auth integration path).
-- CI authenticates with the `SUBMODULES_TOKEN` secret (`contents:read`); the secret is **not yet
-  configured** (blocker HB-2). Never echo the token; `set +x` around any credential step; pass it as
-  a BuildKit secret, never an `ARG`/`ENV`.
-
-## Development workflow & commit discipline
-
-- **Commit granularity**: small, self-contained, atomic commits; never mix unrelated changes.
-- **Strict TDD**: a failing contract/drift test first, then the minimal change; `npm test` +
-  `npm run build` before committing; new tests in the SAME commit.
-- **Git notes invariant**: every commit carries a `git notes add` with (1) context & rationale and
-  (2) privacy & security guarantees (zero data egress, credential hygiene, local-only processing).
-- **AGENTS.md size cap**: keep this file under **100,000** characters (`wc -c AGENTS.md`).
-- A protocol/type bump is a **breaking change**: update `compat-manifest.json` + `protocol.ts`
-  together and note the migration in the commit/PR. Release = git tag `vX.Y.Z` (npm route rejected).
-
-## Conventions worth knowing
-
-- Indentation: tabs, tab width 4 (`.editorconfig`).
-- Files exceeding ~300 lines should be split.
-- Keep the public surface grouped by domain (blob/protocol/history/vcs) and re-export from `index.ts`.
-- The REST contract is built from jsonnet via the **pinned npm devDependency**
-  `@hanazuki/node-jsonnet@3.3.1` (exact pin) — no brew/global binary dependency. NOTE: the binding
-  builds natively via `cmake-js` at `npm ci` time, so the install machine needs CMake + a C
-  toolchain (CI sets up CMake explicitly; consumers of the contracts only need the build output,
-  never a jsonnet render). The render is byte-stable (keys sorted by the renderer; the CJS binding
-  and the old CLI binary produce byte-identical output). `build:openapi` regenerates
-  `openapi/openapi.yaml` from `openapi/src/**`; `check:openapi` is the two-part gate:
-  (1) DRIFT — render must be byte-identical to the committed yaml and the `openapiSha256` pin must
-  match; (2) CONFORMANCE — `@redocly/cli` lints the contract (`.redocly.yaml`) so a faithfully
-  rendered but WRONG contract (e.g. an optional path parameter that makes the generator drop the
-  route) fails too. Drift alone would not have caught that class.
-  `openapi-generator` is NOT needed here — it stays a Phase-B/C concern of the CONSUMERS
-  (server module / plugin client generation), which will read this package's rendered contract.
-
-## Useful references
-
-- `README.md` — package overview, layout, version-bumping contract.
+- `docs/ARCHITECTURE.md` — implementation-free boundary, contract surface, docId schema, OpenAPI pipeline.
+- `docs/TESTING.md` — exact gates and CI jobs.
+- `docs/RELEASE.md` — compat manifest, tarball acquisition, release process.
 - `docs/STATUS.md` — verified state and open follow-ups.
-- Umbrella plan: `Marc-R2/obsidian-crdt-sync` `docs/REPO_SPLIT_PLAN.md` (§1, §4.1, §5, §6.2).
+- `README.md` — package overview and layout.
