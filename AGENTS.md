@@ -54,7 +54,11 @@ Requires Node.js >= 22. The package emits CommonJS + `.d.ts`; **every consumer n
 ## Key pointers
 
 - `src/` — the contract surface (`docType.ts`, `blob.ts`, `blobTypes.ts`, `history.ts`, `vcs.ts`,
-  `protocol.ts`, `index.ts`).
+  `protocol.ts`, `capabilities.ts`, `serverInfo.ts`, `index.ts`).
+- `src/capabilities.ts` + `src/serverInfo.ts` — additive feature negotiation: `CAPABILITIES`/
+  `Capability` and the `GET /` wire shape (`versions.protocol` hard gate + optional `capabilities`).
+  A capability absent from the list means the feature is OFF, never an error; the plugin never
+  branches on a server version number. Adding a flag is a MINOR change (never a protocol bump).
 - `openapi/src/**` — jsonnet edit targets; `openapi/openapi.yaml` — generated artifact.
 - `compat-manifest.json` — the consumer-facing compatibility pin.
 - `tests/unit/contracts/` — contract tests; `scripts/` — the build/gate scripts.

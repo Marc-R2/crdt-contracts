@@ -30,9 +30,26 @@ parity model.
 | `history.ts` | History timeline wire types (index, checkpoints, commits, chunk updates). |
 | `vcs.ts` | Git/VCS domain types shared by plugin and server. |
 | `protocol.ts` | `PROTOCOL_VERSION` — the single integer pinning room-name/entry-schema compatibility. |
+| `capabilities.ts` | `CAPABILITIES` (canonical additive feature flags: `snapshots.v1`, `blobs.chunked.v1`, `doc-status.v1`, `history.v1`, `vcs.v1`), `Capability`, `CAPABILITY_VALUES`. |
+| `serverInfo.ts` | `ServerInfoResponse` / `ServerInfoVersions` — the `GET /` wire shape: `versions.protocol` (hard gate) + optional `capabilities`. |
 | `index.ts` | The public surface (re-exports all of the above). |
 
 Keep the public surface grouped by domain (blob/protocol/history/vcs) and re-export from `index.ts`.
+
+## Capability negotiation (additive feature flags)
+
+`capabilities` is the suite-wide mechanism that lets a plugin run against MULTIPLE server versions
+**by feature, not by version number**:
+
+- **`protocol` is the ONLY hard gate.** The plugin fails visible on a `versions.protocol` mismatch;
+  it never branches on a server version number.
+- **Capabilities are additive booleans.** `GET /` carries `capabilities: string[]`; a flag absent
+  from the list means the feature is simply **off** (no error). An older server that omits the field
+  entirely is handled tolerantly — every feature resolves to off.
+- Flags are namespaced `<feature>.<revision>` so a future breaking change can advertise
+  `snapshots.v2` next to `snapshots.v1` without renaming. Adding/removing a flag is a MINOR contracts
+  change; it never touches `PROTOCOL_VERSION`.
+
 
 ## docId prefix schema (the contract)
 

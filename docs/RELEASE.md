@@ -5,7 +5,7 @@
 `compat-manifest.json` must stay in lockstep with the code:
 
 ```json
-{ "contracts": "0.1.0", "protocolVersion": 1, "openapiSha256": "<64-hex sha256 of openapi/openapi.yaml>" }
+{ "contracts": "0.2.0", "protocolVersion": 1, "openapiSha256": "<64-hex sha256 of openapi/openapi.yaml>" }
 ```
 
 - `protocolVersion` must equal `PROTOCOL_VERSION` in `src/protocol.ts` (bump it on **any** breaking
@@ -29,7 +29,7 @@ URL — no submodule, no token, no sibling checkout:
 
 ```
 "@marc-r2/crdt-contracts":
-  "https://github.com/Marc-R2/crdt-contracts/releases/download/v0.1.0/marc-r2-crdt-contracts-0.1.0.tgz"
+  "https://github.com/Marc-R2/crdt-contracts/releases/download/v0.2.0/marc-r2-crdt-contracts-0.2.0.tgz"
 ```
 
 `package-lock.json` records the tarball's `resolved` URL + `integrity`, so `npm ci` installs it

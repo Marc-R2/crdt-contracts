@@ -14,3 +14,5 @@ export * from './blobTypes';
 export * from './history';
 export * from './vcs';
 export * from './protocol';
+export * from './capabilities';
+export * from './serverInfo';

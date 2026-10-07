@@ -1,6 +1,6 @@
 {
 	"name": "@marc-r2/crdt-contracts",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"private": true,
 	"description": "Implementation-free wire contracts (types + constants) shared by the Obsidian plugin and the sync server.",
 	"license": "0BSD",

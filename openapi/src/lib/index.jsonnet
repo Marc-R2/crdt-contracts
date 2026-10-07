@@ -45,6 +45,15 @@
               protocol: { type: 'integer', description: 'Wire-protocol version (integer). Bump on any breaking room-name / entry-schema change.' },
             },
           },
+          # Additive feature negotiation: the plugin degrades gracefully by
+          # feature, never by server version. `protocol` is the ONLY hard gate;
+          # a capability absent from this list is simply OFF, and an older
+          # server that omits the field is handled tolerantly (all OFF).
+          capabilities: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Additive feature capabilities the server implements (e.g. "snapshots.v1"). Absent on older servers; a missing entry means the feature is off, never an error.',
+          },
         },
       },
     },
