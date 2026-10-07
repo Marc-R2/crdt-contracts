@@ -17,9 +17,7 @@ Snapshot of the extracted repository (extracted from the `obsidian-crdt-sync` mo
 
 ## Open follow-ups
 
-1. **Release tag + pin.** Publish `v0.1.0` and have consumers pin the git dependency (D-1), gated
-   on the `SUBMODULES_TOKEN` proof (HB-2).
-2. **Phase B (crdt_server).** Regenerate `src/generated-api-module` from this package's rendered
+1. **Phase B (crdt_server).** Regenerate `src/generated-api-module` from this package's rendered
    contract with `openapi-generator -g typescript-nestjs-server` (the pre-split root
    `openapi:generate` command); the yaml now covers the full served REST surface.
 3. **Phase C (crdt_plugin).** Regenerate the plugin's TS client from the same rendered contract
@@ -61,5 +59,14 @@ Snapshot of the extracted repository (extracted from the `obsidian-crdt-sync` mo
 
 ## Consumers
 
-`crdt_plugin`, `crdt_server` (both via submodule at `packages/crdt-contracts`).
+`crdt_plugin`, `crdt_server` — both install the public GitHub Release tarball
+`@marc-r2/crdt-contracts` (currently `v0.1.0`) via `package.json`; no submodule.
 `web_vault` intentionally does **not** import this package.
+
+## Distribution migration (2026-10-06)
+
+Consumers no longer pin a `packages/crdt-contracts` git submodule. `crdt-contracts` is **public** and
+consumed as the release tarball
+`https://github.com/Marc-R2/crdt-contracts/releases/download/v0.1.0/marc-r2-crdt-contracts-0.1.0.tgz`,
+installed anonymously by `npm ci`. The cross-consumer release identity is checked by
+`npm run check:suite` (`scripts/check-suite-coherence.mjs`).
