@@ -280,6 +280,11 @@ components:
       type: "object"
     InfoResponse:
       properties:
+        capabilities:
+          description: "Additive feature capabilities the server implements (e.g. \"snapshots.v1\"). Absent on older servers; a missing entry means the feature is off, never an error."
+          items:
+            type: "string"
+          type: "array"
         ok:
           description: "Literal 'OK'."
           type: "string"
